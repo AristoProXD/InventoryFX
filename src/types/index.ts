@@ -10,7 +10,7 @@ export interface Product {
   price: number;
   location: string;
   supplier: string;
-  lastUpdated: Date;
+  lastUpdated: string;
   status: 'active' | 'inactive' | 'low_stock' | 'out_of_stock';
 }
 
@@ -31,6 +31,6 @@ export interface Debt {
   unitPrice: number;
   totalAmount: number;
   description: string;
-  date: Date;
+  date: string;
   status: 'pending' | 'paid' | 'cancelled';
 }

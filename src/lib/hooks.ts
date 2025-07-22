@@ -32,7 +32,7 @@ export function useRealtimeProducts() {
             stock: item.stock,
             minStock: item.min_stock,
             location: item.location,
-            lastUpdated: new Date(item.updated_at || item.created_at),
+            lastUpdated: new Date(item.updated_at || item.created_at).toISOString(),
             status: item.status
           }))
           setProducts(mappedProducts)
@@ -216,7 +216,7 @@ export function useRealtimeDebts() {
             unitPrice: item.unit_price,
             totalAmount: item.total_amount,
             description: item.description,
-            date: new Date(item.date),
+            date: item.date,
             status: item.status
           }))
           setDebts(mappedDebts)
@@ -261,7 +261,7 @@ export function useRealtimeDebts() {
             unit_price: newDebt.unitPrice,
             total_amount: newDebt.totalAmount,
             description: newDebt.description,
-            date: newDebt.date.toISOString(),
+            date: newDebt.date,
             status: newDebt.status,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -303,7 +303,7 @@ export function useRealtimeDebts() {
             unit_price: updatedDebt.unitPrice,
             total_amount: updatedDebt.totalAmount,
             description: updatedDebt.description,
-            date: updatedDebt.date.toISOString(),
+            date: updatedDebt.date,
             status: updatedDebt.status,
             updated_at: new Date().toISOString()
           })
