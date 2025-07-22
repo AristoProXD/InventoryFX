@@ -1,0 +1,36 @@
+// ===== PRODUCTO =====
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  sku: string; // QV (puntos) en la interfaz
+  stock: number;
+  minStock: number;
+  price: number;
+  location: string;
+  supplier: string;
+  lastUpdated: Date;
+  status: 'active' | 'inactive' | 'low_stock' | 'out_of_stock';
+}
+
+// ===== USUARIO FAMILIAR =====
+export interface User {
+  username: string;
+  name: string;
+  loginTime: string;
+}
+
+// ===== DEUDA =====
+export interface Debt {
+  id: string;
+  type: 'owe_us' | 'we_owe'; // nos deben | debemos
+  personName: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  description: string;
+  date: Date;
+  status: 'pending' | 'paid' | 'cancelled';
+}

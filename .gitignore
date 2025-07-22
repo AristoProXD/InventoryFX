@@ -1,0 +1,28 @@
+# Dependencias 
+node_modules/ 
+.pnp 
+.pnp.js 
+ 
+# Produccion 
+/build 
+/dist 
+ 
+# Next.js 
+.next/ 
+out/ 
+ 
+# Logs 
+*.log 
+npm-debug.log* 
+ 
+# Variables de entorno 
+.env 
+.env.local 
+.env.production 
+ 
+# Cache 
+.eslintcache 
+ 
+# Sistema 
+.DS_Store 
+Thumbs.db 
