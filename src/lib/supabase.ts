@@ -1,12 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Configuración de Supabase
+// Configuración de Supabase - Actualizado para Inventario Fuxion Casa 2025
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Solo crear cliente si tenemos las credenciales
+// Crear cliente de Supabase
 export const supabase = (supabaseUrl && supabaseKey) 
-  ? createClient(supabaseUrl, supabaseKey)
+  ? createClient(supabaseUrl, supabaseKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    })
   : null
 
 // Función para verificar si Supabase está configurado
@@ -24,32 +30,135 @@ export const getSupabaseStatus = () => {
     return { configured: false, connected: false, message: 'Cliente no inicializado' }
   }
   
-  return { configured: true, connected: true, message: 'Supabase conectado' }
+  return { configured: true, connected: true, message: 'Supabase conectado y sincronizando' }
 }
 
-// Tipos para la base de datos
+// Tipos para la base de datos actualizados
 export interface DatabaseProduct {
   id: string
   name: string
-  category: string
-  supplier: string
-  price: number
   stock: number
-  min_stock: number
-  qv_points: number
-  location: string
-  status: 'active' | 'low_stock' | 'out_of_stock' | 'inactive'
+  price: number
+  qv: number
+  min_stock?: number
+  status?: 'active' | 'low_stock' | 'out_of_stock' | 'inactive'
   created_at?: string
   updated_at?: string
 }
 
 export interface DatabaseDebt {
   id: string
-  debtor_name: string
+  type: 'nos_deben' | 'debemos'
+  name: string
   amount: number
-  description: string
-  date: string
-  status: 'pending' | 'paid'
+  description?: string
+  date?: string
+  status?: 'pending' | 'paid' | 'cancelled'
   created_at?: string
   updated_at?: string
+}
+
+// Funciones de utilidad para productos
+export const getProducts = async () => {
+  if (!supabase) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: true })
+    
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching products:', error)
+    return null
+  }
+}
+
+export const updateProductStock = async (id: string, stock: number) => {
+  if (!supabase) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .update({ stock, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error updating product stock:', error)
+    return null
+  }
+}
+
+export const addProduct = async (product: Omit<DatabaseProduct, 'id' | 'created_at' | 'updated_at'>) => {
+  if (!supabase) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([product])
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error adding product:', error)
+    return null
+  }
+}
+
+// Funciones de utilidad para deudas
+export const getDebts = async () => {
+  if (!supabase) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('debts')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching debts:', error)
+    return null
+  }
+}
+
+export const addDebt = async (debt: Omit<DatabaseDebt, 'id' | 'created_at' | 'updated_at'>) => {
+  if (!supabase) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('debts')
+      .insert([debt])
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error adding debt:', error)
+    return null
+  }
+}
+
+export const removeDebt = async (id: string) => {
+  if (!supabase) return null
+  
+  try {
+    const { error } = await supabase
+      .from('debts')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error removing debt:', error)
+    return false
+  }
 }

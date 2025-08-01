@@ -1,12 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, Plus, Minus, Save, LogOut, Clock, Edit2, Trash2, UserPlus } from 'lucide-react'
+import { Package, Plus, Minus, Save, LogOut, Clock, Edit2, Trash2, UserPlus, Wifi, WifiOff } from 'lucide-react'
+import { 
+  isSupabaseConfigured, 
+  getSupabaseStatus, 
+  getProducts, 
+  updateProductStock,
+  addProduct as addProductToDb,
+  getDebts,
+  addDebt as addDebtToDb,
+  removeDebt as removeDebtFromDb,
+  supabase 
+} from '@/lib/supabase'
 
 // Configuración del sistema
 const SESSION_DURATION = 8 * 60 * 60 * 1000 // 8 horas
 
-// Datos iniciales de productos
+// Datos iniciales de productos (fallback si no hay Supabase)
 const INITIAL_PRODUCTS = [
   { id: '1', name: 'REXET', stock: 45, price: 185, qv: 45 },
   { id: '2', name: 'PRUNEX 1', stock: 8, price: 165, qv: 8 },
@@ -38,9 +49,112 @@ export function InventoryApp() {
   const [showProductForm, setShowProductForm] = useState(false)
   const [productForm, setProductForm] = useState({ name: '', price: '', qv: '', stock: '' })
   const [debtForm, setDebtForm] = useState({ type: 'nos_deben', name: '', amount: '', description: '' })
+  const [isOnline, setIsOnline] = useState(true)
+  const [supabaseStatus, setSupabaseStatus] = useState(getSupabaseStatus())
 
-  // Cargar datos al inicio
+  // Verificar estado de Supabase y cargar datos
   useEffect(() => {
+    const initializeData = async () => {
+      setSupabaseStatus(getSupabaseStatus())
+      
+      if (isSupabaseConfigured()) {
+        // Cargar datos desde Supabase
+        try {
+          const [productsData, debtsData] = await Promise.all([
+            getProducts(),
+            getDebts()
+          ])
+          
+          if (productsData && productsData.length > 0) {
+            setProducts(productsData.map(product => ({
+              id: product.id,
+              name: product.name,
+              stock: product.stock,
+              price: product.price,
+              qv: product.qv
+            })))
+          }
+          
+          if (debtsData && debtsData.length > 0) {
+            setDebts(debtsData.map(debt => ({
+              id: debt.id,
+              type: debt.type,
+              name: debt.name,
+              amount: debt.amount,
+              description: debt.description || '',
+              date: debt.date || new Date().toLocaleDateString()
+            })))
+          }
+          
+          setIsOnline(true)
+        } catch (error) {
+          console.error('Error loading data from Supabase:', error)
+          setIsOnline(false)
+          // Fallback a localStorage
+          loadFromLocalStorage()
+        }
+      } else {
+        // Usar localStorage como fallback
+        loadFromLocalStorage()
+      }
+    }
+
+    initializeData()
+  }, [])
+
+  // Suscribirse a cambios en tiempo real de Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return
+
+    const productsSubscription = supabase
+      .channel('products-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        console.log('Products change detected:', payload)
+        // Recargar productos
+        getProducts().then(data => {
+          if (data) {
+            setProducts(data.map(product => ({
+              id: product.id,
+              name: product.name,
+              stock: product.stock,
+              price: product.price,
+              qv: product.qv
+            })))
+          }
+        })
+      })
+      .subscribe()
+
+    const debtsSubscription = supabase
+      .channel('debts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, (payload) => {
+        console.log('Debts change detected:', payload)
+        // Recargar deudas
+        getDebts().then(data => {
+          if (data) {
+            setDebts(data.map(debt => ({
+              id: debt.id,
+              type: debt.type,
+              name: debt.name,
+              amount: debt.amount,
+              description: debt.description || '',
+              date: debt.date || new Date().toLocaleDateString()
+            })))
+          }
+        })
+      })
+      .subscribe()
+
+    return () => {
+      if (supabase) {
+        supabase.removeChannel(productsSubscription)
+        supabase.removeChannel(debtsSubscription)
+      }
+    }
+  }, [])
+
+  // Función para cargar desde localStorage (fallback)
+  const loadFromLocalStorage = () => {
     const savedProducts = localStorage.getItem('fuxion-products')
     const savedDebts = localStorage.getItem('fuxion-debts')
     const savedTime = localStorage.getItem('fuxion-last-saved')
@@ -54,7 +168,7 @@ export function InventoryApp() {
     if (savedTime) {
       setLastSaved(new Date(savedTime).toLocaleTimeString())
     }
-  }, [])
+  }
 
   // Actualizar tiempo restante
   useEffect(() => {
@@ -76,16 +190,36 @@ export function InventoryApp() {
     return () => clearInterval(interval)
   }, [])
 
-  const updateStock = (productId: string, change: number) => {
+  const updateStock = async (productId: string, change: number) => {
+    const currentProduct = products.find(p => p.id === productId)
+    if (!currentProduct) return
+
+    const newStock = Math.max(0, currentProduct.stock + change)
+    
+    // Actualizar estado local inmediatamente
     setProducts(prev => prev.map(product => {
       if (product.id === productId) {
-        const newStock = Math.max(0, product.stock + change)
         return { ...product, stock: newStock }
       }
       return product
     }))
-    setHasUnsavedChanges(true)
-    setSaveSuccess(false)
+
+    // Intentar actualizar en Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        await updateProductStock(productId, newStock)
+        setIsOnline(true)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 2000)
+      } catch (error) {
+        console.error('Error updating stock in Supabase:', error)
+        setIsOnline(false)
+        // Marcar cambios como no guardados para localStorage
+        setHasUnsavedChanges(true)
+      }
+    } else {
+      setHasUnsavedChanges(true)
+    }
   }
 
   const updateProduct = (productId: string, field: string, value: any) => {
@@ -99,7 +233,7 @@ export function InventoryApp() {
     setSaveSuccess(false)
   }
 
-  const addDebt = () => {
+  const addDebt = async () => {
     if (!debtForm.name || !debtForm.amount) return
     
     const newDebt = {
@@ -110,15 +244,33 @@ export function InventoryApp() {
       description: debtForm.description,
       date: new Date().toLocaleDateString()
     }
-    
+
+    // Actualizar estado local
     setDebts(prev => [...prev, newDebt])
     setDebtForm({ type: 'nos_deben', name: '', amount: '', description: '' })
     setShowDebtForm(false)
-    setHasUnsavedChanges(true)
-    setSaveSuccess(false)
+
+    // Intentar guardar en Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        await addDebtToDb({
+          type: newDebt.type,
+          name: newDebt.name,
+          amount: newDebt.amount,
+          description: newDebt.description
+        })
+        setIsOnline(true)
+      } catch (error) {
+        console.error('Error adding debt to Supabase:', error)
+        setIsOnline(false)
+        setHasUnsavedChanges(true)
+      }
+    } else {
+      setHasUnsavedChanges(true)
+    }
   }
 
-  const addProduct = () => {
+  const addProduct = async () => {
     if (!productForm.name || !productForm.price || !productForm.qv) return
     
     const newProduct = {
@@ -128,21 +280,53 @@ export function InventoryApp() {
       qv: parseInt(productForm.qv),
       stock: parseInt(productForm.stock) || 0
     }
-    
+
+    // Actualizar estado local
     setProducts(prev => [...prev, newProduct])
     setProductForm({ name: '', price: '', qv: '', stock: '' })
     setShowProductForm(false)
-    setHasUnsavedChanges(true)
-    setSaveSuccess(false)
+
+    // Intentar guardar en Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        await addProductToDb({
+          name: newProduct.name,
+          price: newProduct.price,
+          qv: newProduct.qv,
+          stock: newProduct.stock
+        })
+        setIsOnline(true)
+      } catch (error) {
+        console.error('Error adding product to Supabase:', error)
+        setIsOnline(false)
+        setHasUnsavedChanges(true)
+      }
+    } else {
+      setHasUnsavedChanges(true)
+    }
   }
 
-  const removeDebt = (debtId: string) => {
+  const removeDebt = async (debtId: string) => {
+    // Actualizar estado local
     setDebts(prev => prev.filter(debt => debt.id !== debtId))
-    setHasUnsavedChanges(true)
-    setSaveSuccess(false)
+
+    // Intentar eliminar de Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        await removeDebtFromDb(debtId)
+        setIsOnline(true)
+      } catch (error) {
+        console.error('Error removing debt from Supabase:', error)
+        setIsOnline(false)
+        setHasUnsavedChanges(true)
+      }
+    } else {
+      setHasUnsavedChanges(true)
+    }
   }
 
   const handleSave = () => {
+    // Guardar en localStorage como respaldo
     localStorage.setItem('fuxion-products', JSON.stringify(products))
     localStorage.setItem('fuxion-debts', JSON.stringify(debts))
     localStorage.setItem('fuxion-last-saved', new Date().toISOString())
@@ -194,22 +378,42 @@ export function InventoryApp() {
             <div className="flex items-center gap-3">
               <Package className="h-8 w-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900">Inventario Fuxion Casa</h1>
+              
+              {/* Indicador de estado de Supabase */}
+              <div className="flex items-center gap-2">
+                {isSupabaseConfigured() ? (
+                  <div className="flex items-center gap-1">
+                    {isOnline ? (
+                      <Wifi className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <WifiOff className="h-4 w-4 text-red-600" />
+                    )}
+                    <span className={`text-xs ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
+                      {isOnline ? 'Sincronizado' : 'Sin conexión'}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500">Modo local</span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Botón guardar */}
-              <button
-                onClick={handleSave}
-                disabled={!hasUnsavedChanges}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  hasUnsavedChanges
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <Save className="h-4 w-4" />
-                Guardar Cambios
-              </button>
+              {/* Botón guardar - Solo visible si no hay Supabase o hay cambios sin guardar */}
+              {(!isSupabaseConfigured() || hasUnsavedChanges) && (
+                <button
+                  onClick={handleSave}
+                  disabled={!hasUnsavedChanges}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    hasUnsavedChanges
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Save className="h-4 w-4" />
+                  Guardar Cambios
+                </button>
+              )}
 
               {/* Estado */}
               <div className="text-sm">
