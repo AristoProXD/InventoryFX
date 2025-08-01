@@ -371,6 +371,12 @@ export function InventoryApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Banner de error Supabase */}
+      {(!isSupabaseConfigured() || !isOnline) && (
+        <div className="w-full bg-red-600 text-white text-center py-2 warehouse-alert shadow-lg transition-all duration-200">
+          <span className="font-semibold">{!isSupabaseConfigured() ? 'Error: Supabase no está configurado correctamente. La app está en modo local.' : 'Error: Sin conexión con Supabase. Cambios no se sincronizan.'}</span>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
