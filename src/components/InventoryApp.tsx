@@ -371,6 +371,12 @@ export function InventoryApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* DEBUG: Mostrar variables de entorno Supabase (eliminar en producción) */}
+      <div className="bg-yellow-100 text-yellow-800 text-xs px-4 py-2 border-b border-yellow-300">
+        <strong>DEBUG Supabase:</strong> <br />
+        NEXT_PUBLIC_SUPABASE_URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? <span className="font-mono">{process.env.NEXT_PUBLIC_SUPABASE_URL}</span> : <span className="text-red-600">NO DEFINIDA</span>}<br />
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? <span className="font-mono">{process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.slice(0, 8) + '...'}</span> : <span className="text-red-600">NO DEFINIDA</span>}
+      </div>
       {/* Banner de error Supabase */}
       {(!isSupabaseConfigured() || !isOnline) && (
         <div className="w-full bg-red-600 text-white text-center py-2 warehouse-alert shadow-lg transition-all duration-200">
