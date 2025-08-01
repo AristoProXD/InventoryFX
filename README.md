@@ -1,174 +1,209 @@
-# 🏢 **INVENTARIO FUXION CASA**
+# 📦 Inventario Fuxion Casa
 
-Sistema de Gestión de Inventario Familiar para Productos FUXION
+Sistema de gestión de inventario en tiempo real desarrollado con Next.js 15 y diseñado para funcionar 24/7 en la nube.
 
-## 🎯 **CARACTERÍSTICAS PRINCIPALES**
+## 🚀 Características
 
-### ✅ **Gestión Completa de Inventario**
-- 21 Productos FUXION preconfigurados con precios en Soles (S/)
-- Control de stock con botones +/- directo en la interfaz
-- Estados automáticos: Sin Stock (≤1), Stock Bajo (≤3), Stock Normal (>3)
-- Sistema QV (Qualified Volume) para productos FUXION
+- ✅ **Interfaz moderna y responsive** con Tailwind CSS
+- ✅ **Autenticación por contraseña** con sesiones de 8 horas
+- ✅ **Gestión de inventario en tiempo real** (agregar/quitar stock)
+- ✅ **Sistema de cuentas y deudas** ("nos deben" / "debemos")
+- ✅ **Estadísticas en tiempo real** (stock total, productos sin stock, valor total)
+- ✅ **Almacenamiento local** (localStorage) con sincronización automática
+- ✅ **Lista para desplegar** en Vercel con configuración optimizada
 
-### 🔐 **Acceso Restringido Familiar**
-- Solo 5 usuarios familiares autorizados
-- Autenticación simplificada con sesiones persistentes
-- Sistema optimizado para uso doméstico
+## 🛠️ Tecnologías
 
-### 💰 **Sistema de Deudas Integrado**
-- Registro y gestión de deudas familiares
-- Seguimiento de pagos y saldos pendientes
-- Interfaz organizada en pestañas
+- **Next.js 15** - Framework de React con App Router
+- **TypeScript** - Tipado estático
+- **Tailwind CSS** - Estilos utilitarios
+- **Lucide React** - Iconos modernos
+- **Vercel** - Plataforma de despliegue
 
-### 🎨 **Diseño Profesional**
-- Interface moderna con tema warehouse
-- Colores industriales y diseño limpio
-- Completamente responsive
+## 📋 Requisitos Previos
 
-## 🚀 **INSTALACIÓN RÁPIDA**
+- Node.js 18+ 
+- npm o yarn
+- Cuenta en Vercel (para despliegue)
+
+## 🚦 Instalación Local
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone <tu-repositorio>
+   cd inventario-fuxion-casa
+   ```
+
+2. **Instalar dependencias**
+   ```bash
+   npm install
+   ```
+
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. **Ejecutar en modo desarrollo**
+   ```bash
+   npm run dev
+   ```
+
+5. **Abrir en el navegador**
+   ```
+   http://localhost:3000
+   ```
+
+## 🌐 Despliegue en Vercel (2025)
+
+### Opción 1: Desde GitHub (Recomendado)
+
+1. **Subir código a GitHub**
+   ```bash
+   git add .
+   git commit -m "Deploy setup"
+   git push origin main
+   ```
+
+2. **Conectar con Vercel**
+   - Ve a [vercel.com](https://vercel.com)
+   - Haz clic en "New Project"
+   - Conecta tu repositorio de GitHub
+   - Vercel detectará automáticamente que es un proyecto Next.js
+
+3. **Configurar variables de entorno en Vercel**
+   - En el dashboard de Vercel, ve a Settings > Environment Variables
+   - Agrega estas variables:
+     ```
+     NEXT_PUBLIC_MASTER_PASSWORD=tu_contraseña_segura_aqui
+     NEXT_PUBLIC_APP_NAME=Inventario Fuxion Casa
+     NEXT_PUBLIC_APP_VERSION=1.0.0
+     ```
+
+4. **Hacer deploy**
+   - Vercel hará el deploy automáticamente
+   - Tu app estará disponible en: `https://tu-proyecto.vercel.app`
+
+### Opción 2: Desde CLI de Vercel
+
+1. **Instalar Vercel CLI**
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Hacer login**
+   ```bash
+   vercel login
+   ```
+
+3. **Hacer deploy**
+   ```bash
+   vercel --prod
+   ```
+
+## 🔒 Configuración de Seguridad
+
+### Cambiar contraseña maestra
+
+1. **En desarrollo** - Edita `.env.local`:
+   ```env
+   NEXT_PUBLIC_MASTER_PASSWORD=tu_nueva_contraseña_segura
+   ```
+
+2. **En producción** - En Vercel:
+   - Settings > Environment Variables
+   - Actualiza `NEXT_PUBLIC_MASTER_PASSWORD`
+   - Redeploy el proyecto
+
+### Consideraciones de Seguridad 2025
+
+- ✅ Headers de seguridad configurados en `vercel.json`
+- ✅ Autenticación basada en sesiones con expiración
+- ✅ Variables de entorno para datos sensibles
+- ⚠️ **Importante**: Cambia la contraseña por defecto antes del despliegue
+
+## 📊 Funcionalidades del Sistema
+
+### Gestión de Inventario
+- Ver todos los productos con stock actual
+- Agregar/quitar stock con botones +/-
+- Editar nombres de productos inline
+- Agregar nuevos productos
+- Indicadores visuales de stock (Sin Stock, Stock Bajo, Disponible)
+
+### Sistema de Cuentas
+- Registrar deudas: "Nos deben" o "Debemos"
+- Agregar descripción y monto
+- Eliminar cuentas saldadas
+- Fecha automática de registro
+
+### Estadísticas en Tiempo Real
+- Total de productos
+- Stock total en almacén
+- Productos con stock bajo
+- Productos sin stock
+- Valor total del inventario
+
+## 🔄 Actualizaciones y Mantenimiento
+
+### Para actualizar el proyecto en producción:
+
+1. **Hacer cambios localmente**
+2. **Probar en desarrollo**
+   ```bash
+   npm run dev
+   ```
+3. **Subir cambios**
+   ```bash
+   git add .
+   git commit -m "Descripción del cambio"
+   git push origin main
+   ```
+4. **Vercel hará auto-deploy** de los cambios
+
+### Comandos útiles:
 
 ```bash
-# Instalar dependencias
-npm install
-
-# Ejecutar aplicación
-npm run dev
-```
-
-Accede en: `http://localhost:3000`
-
-## 🔑 **USUARIOS FAMILIARES**
-
-| Usuario   | Contraseña      | Rol                 |
-|-----------|-----------------|---------------------|
-| admin     | fuxion2025      | Administrador       |
-| familia1  | casa123         | Usuario Familiar 1  |
-| familia2  | fuxion456       | Usuario Familiar 2  |
-| familia3  | inventario789   | Usuario Familiar 3  |
-| familia4  | almacen321      | Usuario Familiar 4  |
-
-## 📦 **PRODUCTOS PRECONFIGURADOS**
-
-### **Proteínas & Nutrición (8 productos)**
-- PROLIFE + Colágeno - S/ 139.00 (15 QV)
-- OMNILIFE Shake Vainilla - S/ 119.00 (13 QV)
-- THERMOGEN Café - S/ 89.00 (10 QV)
-- POWER MAKER Chocolate - S/ 109.00 (12 QV)
-- FIBER N PLUS - S/ 99.00 (11 QV)
-- OPTIMUS Verde - S/ 129.00 (14 QV)
-- TEATINO Original - S/ 49.00 (6 QV)
-- DUAL C MIX - S/ 79.00 (9 QV)
-
-### **Suplementos & Wellness (6 productos)**
-- ALOE BETA Original - S/ 69.00 (8 QV)
-- FENIX Natural - S/ 79.00 (9 QV)
-- STARBIEN Digestivo - S/ 59.00 (7 QV)
-- SUPREME Klb6 - S/ 89.00 (10 QV)
-- EGO VITA - S/ 99.00 (11 QV)
-- DOLCE VITA Bebida - S/ 39.00 (5 QV)
-
-### **Cuidado Personal (4 productos)**
-- SEYTU Cosmética - S/ 69.00 (8 QV)
-- SEYTU Shampoo - S/ 49.00 (6 QV)
-- SEYTU Crema - S/ 59.00 (7 QV)
-- SEYTU Jabón - S/ 29.00 (4 QV)
-
-### **Hogar & Limpieza (3 productos)**
-- HYGIVIT Desinfectante - S/ 39.00 (5 QV)
-- ECO KLINZ Limpiador - S/ 45.00 (5 QV)
-- NUTRIVIT Fertilizante - S/ 35.00 (4 QV)
-
-## ⚙️ **STACK TECNOLÓGICO**
-
-- **Framework**: Next.js 15.4.2
-- **Lenguaje**: TypeScript
-- **Estilos**: Tailwind CSS
-- **Iconos**: Lucide React
-- **Estado**: React Hooks + localStorage
-- **Build**: Optimizado para producción
-
-## 📁 **ARQUITECTURA LIMPIA**
-
-```
-src/
-├── app/
-│   ├── page.tsx              # Dashboard principal (inventario + deudas)
-│   ├── login/page.tsx        # Autenticación familiar
-│   ├── layout.tsx           # Layout con metadata
-│   └── globals.css          # Estilos Tailwind + custom
-├── components/
-│   └── AddProductModal.tsx  # Modal optimizado para nuevos productos
-├── lib/
-│   └── utils.ts            # Utilidades TypeScript
-└── types/
-    └── index.ts            # Interfaces limpias y documentadas
-```
-
-## 🎯 **FUNCIONALIDADES**
-
-### **Dashboard de Inventario**
-- ✅ Lista completa de productos FUXION
-- ✅ Control de stock en tiempo real (+/-)
-- ✅ Estados visuales por nivel de stock
-- ✅ Búsqueda rápida por nombre
-- ✅ Filtros por categoría y estado
-- ✅ Modal para agregar nuevos productos
-
-### **Gestión de Deudas**
-- ✅ CRUD completo de deudas familiares
-- ✅ Seguimiento de montos y fechas
-- ✅ Interfaz separada en pestañas
-- ✅ Cálculos automáticos de saldos
-
-### **Sistema de Autenticación**
-- ✅ Login familiar restringido
-- ✅ Sesiones persistentes
-- ✅ Logout seguro
-- ✅ Redirección automática
-
-## 🚀 **DEPLOYMENT**
-
-### **Scripts NPM**
-```bash
-npm run dev        # Desarrollo (localhost:3000)
-npm run build      # Build optimizado
-npm run start      # Servidor producción
-npm run lint       # Linting ESLint
-npm run type-check # Verificación TypeScript
-```
-
-### **Vercel (1-Click Deploy)**
-```bash
-# Conectar GitHub repo con Vercel
-# Deploy automático en cada push
-```
-
-### **Build Manual**
-```bash
+# Verificar el build local
 npm run build
-npm run start
-# Servidor en puerto 3000
+
+# Verificar tipos de TypeScript
+npm run type-check
+
+# Verificar linting
+npm run lint
 ```
 
-## 📊 **ESTADO DEL PROYECTO**
+## 📱 Uso del Sistema
 
-- ✅ **Código limpio y optimizado**
-- ✅ **TypeScript sin errores**
-- ✅ **Build exitoso**
-- ✅ **Componentes modulares**
-- ✅ **Responsive design**
-- ✅ **Documentación completa**
-- ✅ **Listo para producción**
+1. **Acceso**: Ingresa la contraseña maestra
+2. **Inventario**: Usa los botones +/- para ajustar stock
+3. **Cuentas**: Agrega deudas y pagos pendientes
+4. **Guardar**: Los cambios se guardan automáticamente cada vez que haces una modificación
+5. **Sesión**: La sesión dura 8 horas, después debes volver a ingresar
 
-## 🔧 **CONFIGURACIÓN**
+## 🆘 Solución de Problemas
 
-El proyecto incluye configuración optimizada para:
-- **TypeScript strict mode**
-- **ESLint + Next.js rules**
-- **Tailwind CSS custom theme**
-- **Vercel deployment**
-- **Lucide React icons**
+### El sitio no carga
+- Verifica que el deploy en Vercel haya sido exitoso
+- Revisa los logs en el dashboard de Vercel
+
+### Problemas con variables de entorno
+- Asegúrate de que todas las variables estén configuradas en Vercel
+- Las variables que empiezan con `NEXT_PUBLIC_` son visibles en el cliente
+
+### Problemas con localStorage
+- Los datos se guardan localmente en cada navegador
+- Para reset completo, limpia el localStorage del navegador
+
+## 📞 Soporte
+
+Para reportar problemas o solicitar nuevas funcionalidades, crea un issue en el repositorio del proyecto.
+
+## 📄 Licencia
+
+Proyecto desarrollado para uso interno de Fuxion Casa.
 
 ---
 
-**💚 Sistema familiar completo y optimizado para Fuxion Casa**
+**Desarrollado con ❤️ para la gestión eficiente de inventarios en 2025**
