@@ -42,6 +42,9 @@ export interface DatabaseProduct {
   qv: number
   min_stock?: number
   status?: 'active' | 'low_stock' | 'out_of_stock' | 'inactive'
+  description?: string
+  category?: string
+  color?: string
   created_at?: string
   updated_at?: string
 }

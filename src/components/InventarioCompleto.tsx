@@ -571,6 +571,8 @@ export default function InventoryApp() {
                           name="price"
                           type="number"
                           min="0"
+                          step="0.01"
+                          inputMode="decimal"
                           value={productForm.price}
                           onChange={handleProductFormChange}
                           required
@@ -826,6 +828,8 @@ export default function InventoryApp() {
                           name="monto"
                           type="number"
                           min="0"
+                          step="0.01"
+                          inputMode="decimal"
                           value={cuentaForm.monto}
                           onChange={handleCuentaFormChange}
                           required

@@ -3,7 +3,8 @@
 
 "use client";
 
-import { useState, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect, useEffect } from 'react';
+import { supabase, getProducts, addProduct, updateProductStock } from '../lib/supabase';
 import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react';
 
 const PRODUCT_CATEGORIES = [
@@ -20,13 +21,7 @@ const PRODUCT_CATEGORIES = [
   'Auxiliar de Venta'
 ];
 
-const INITIAL_PRODUCTS = [
-  { id: '1', name: 'REXET', stock: 45, price: 185, qv: 45, description: '', category: '', color: '#1e293b' },
-  { id: '2', name: 'PRUNEX 1', stock: 8, price: 165, qv: 8, description: '', category: '', color: '#1e293b' },
-  { id: '3', name: 'B-PROTE', stock: 0, price: 195, qv: 0, description: '', category: '', color: '#1e293b' },
-  { id: '4', name: 'THERMATRIX', stock: 22, price: 175, qv: 22, description: '', category: '', color: '#1e293b' },
-  { id: '5', name: 'HGH X3', stock: 12, price: 220, qv: 12, description: '', category: '', color: '#1e293b' }
-];
+// Productos iniciales eliminados, todo desde Supabase
 
 
 
@@ -56,7 +51,32 @@ export default function InventoryApp() {
   }
   const [activeTab, setActiveTab] = useState('inventario');
   // Inventario states
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
+  const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
+  // Cargar productos y suscribirse a cambios en tiempo real
+  useEffect(() => {
+    let channel: any;
+    async function fetchProducts() {
+      setSyncStatus('loading');
+      const data = await getProducts();
+      if (data) {
+        setProducts(data);
+        setSyncStatus('ok');
+      } else {
+        setSyncStatus('error');
+      }
+    }
+    fetchProducts();
+    // Realtime
+    if (supabase) {
+      channel = supabase.channel('products-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
+          fetchProducts();
+        })
+        .subscribe();
+    }
+  return () => { if (channel && supabase) supabase.removeChannel(channel); };
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
@@ -363,8 +383,12 @@ export default function InventoryApp() {
     return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  function updateStock(id: string, delta: number) {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: Math.max(0, p.stock + delta) } : p));
+  async function updateStock(id: string, delta: number) {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    const newStock = Math.max(0, Number(prod.stock) + delta);
+    await updateProductStock(id, newStock);
+    // El realtime actualizará el estado
   }
 
   function handleProductFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -381,7 +405,7 @@ export default function InventoryApp() {
     return null;
   }
 
-  function handleProductFormSubmit(e: React.FormEvent) {
+  async function handleProductFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     const error = validateProductForm();
     if (error) {
@@ -389,34 +413,18 @@ export default function InventoryApp() {
       return;
     }
     if (editingProduct) {
-      setProducts(prev => prev.map(p =>
-        p.id === editingProduct
-          ? {
-              ...p,
-              name: productForm.name,
-              description: productForm.description,
-              category: productForm.category,
-              color: productForm.color,
-              price: Number(productForm.price),
-              qv: Number(productForm.qv),
-              stock: Number(productForm.stock)
-            }
-          : p
-      ));
+      // Actualizar producto existente (solo stock por ahora)
+      await updateProductStock(editingProduct, Number(productForm.stock));
     } else {
-      setProducts(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          name: productForm.name,
-          description: productForm.description,
-          category: productForm.category,
-          color: productForm.color,
-          price: Number(productForm.price),
-          qv: Number(productForm.qv),
-          stock: Number(productForm.stock)
-        }
-      ]);
+      await addProduct({
+        name: productForm.name,
+        description: productForm.description,
+        category: productForm.category,
+        color: productForm.color,
+        price: Number(productForm.price),
+        qv: Number(productForm.qv),
+        stock: Number(productForm.stock)
+      });
     }
     setShowProductForm(false);
     setEditingProduct(null);
@@ -424,9 +432,11 @@ export default function InventoryApp() {
     setFormError(null);
   }
 
-  function handleDeleteProduct(product: any) {
+  async function handleDeleteProduct(product: any) {
     if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) {
-      setProducts(prev => prev.filter(p => p.id !== product.id));
+      if (supabase) {
+        await supabase.from('products').delete().eq('id', product.id);
+      }
     }
   }
 
@@ -449,16 +459,23 @@ export default function InventoryApp() {
     <div className="flex items-center gap-2">
       <button
         onClick={handleLogout}
-        className="flex items-center gap-2 text-green-400 font-semibold px-3 py-2 rounded-xl transition-all border border-green-700 bg-green-900/30 shadow-lg backdrop-blur-md animate-pulse sm:hidden"
+        className={`flex items-center gap-2 font-semibold px-3 py-2 rounded-xl transition-all border shadow-lg backdrop-blur-md animate-pulse sm:hidden
+          ${syncStatus === 'ok' ? 'text-green-400 border-green-700 bg-green-900/30' : syncStatus === 'loading' ? 'text-yellow-300 border-yellow-700 bg-yellow-900/30' : 'text-red-400 border-red-700 bg-red-900/30'}`}
         title="Sincronizado / Salir"
       >
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
-        Sincronizado
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
+          <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
+        </svg>
+        {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
         <LogOut className="h-5 w-5 text-slate-200 ml-1" />
       </button>
-      <span className="hidden sm:flex items-center gap-1 text-green-400 font-semibold text-base bg-green-900/30 px-3 py-1 rounded-full shadow-inner border border-green-700 animate-pulse">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
-        Sincronizado
+      <span className={`hidden sm:flex items-center gap-1 font-semibold text-base px-3 py-1 rounded-full shadow-inner border animate-pulse
+        ${syncStatus === 'ok' ? 'text-green-400 bg-green-900/30 border-green-700' : syncStatus === 'loading' ? 'text-yellow-300 bg-yellow-900/30 border-yellow-700' : 'text-red-400 bg-red-900/30 border-red-700'}`}
+      >
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
+          <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
+        </svg>
+        {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
       </span>
       <button
         onClick={handleLogout}
