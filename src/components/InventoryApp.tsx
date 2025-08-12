@@ -513,7 +513,7 @@ export default function InventoryApp() {
             {showProductForm && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
                 <form
-                  className="bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 rounded-xl shadow-lg p-8 w-full max-w-md relative animate-fadeIn border border-blue-900/40"
+                  className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative animate-fadeIn border border-blue-900/40"
                   onSubmit={handleProductFormSubmit}
                 >
                   <div className="text-xl font-bold mb-4">{editingProduct ? 'Editar producto' : 'Agregar producto'}</div>
@@ -539,9 +539,9 @@ export default function InventoryApp() {
                       />
                     </div>
                     <div>
-                      <label className="block text-base font-semibold mb-2 text-slate-200">Categoría</label>
+                      <label className="block text-base font-semibold mb-2 text-black">Categoría</label>
                       <select
-                        className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-200"
+                        className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-slate-100 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                         name="category"
                         value={productForm.category}
                         onChange={handleProductFormChange}
@@ -553,7 +553,7 @@ export default function InventoryApp() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-slate-200">Color</label>
+                      <label className="block text-sm font-medium mb-1 text-black">Color</label>
                       <input
                         className="warehouse-input w-full"
                         name="color"
@@ -565,7 +565,7 @@ export default function InventoryApp() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-200">Precio *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">Precio *</label>
                         <input
                           className="warehouse-input w-full"
                           name="price"
@@ -577,7 +577,7 @@ export default function InventoryApp() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-200">QV *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">QV *</label>
                         <input
                           className="warehouse-input w-full"
                           name="qv"
@@ -589,7 +589,7 @@ export default function InventoryApp() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-200">Stock *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">Stock *</label>
                         <input
                           className="warehouse-input w-full"
                           name="stock"
@@ -602,11 +602,11 @@ export default function InventoryApp() {
                       </div>
                     </div>
                   </div>
-                  {formError && <div className="text-red-400 mt-3 text-sm font-semibold">{formError}</div>}
+                  {formError && <div className="text-red-600 mt-3 text-sm font-semibold">{formError}</div>}
                   <div className="flex gap-4 mt-6 justify-end">
                     <button
                       type="button"
-                      className="warehouse-button bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg border border-slate-700"
+                      className="warehouse-button bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg border border-slate-400"
                       onClick={() => {
                         setShowProductForm(false);
                         setEditingProduct(null);
