@@ -644,13 +644,13 @@ export default function InventoryApp() {
               <div className="flex flex-col flex-1 min-w-[180px] md:max-w-[220px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Categoría</label>
                 <select
-                  className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-200"
+                  className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                   value={categoryFilter}
                   onChange={e => setCategoryFilter(e.target.value)}
                 >
-                  <option value="" className="text-slate-200">Todas</option>
+                  <option value="" className="text-black">Todas</option>
                   {PRODUCT_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat} className="text-slate-200">{cat}</option>
+                    <option key={cat} value={cat} className="text-black">{cat}</option>
                   ))}
                 </select>
               </div>
