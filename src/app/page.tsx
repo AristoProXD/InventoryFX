@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { LoginForm } from '@/components/LoginForm'
-import { InventoryApp } from '@/components/InventoryApp'
+import InventoryApp from '@/components/InventoryApp'
 
 // Configuración del sistema
 const SESSION_DURATION = 8 * 60 * 60 * 1000 // 8 horas

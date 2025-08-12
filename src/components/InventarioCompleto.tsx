@@ -509,7 +509,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Nombre *</label>
                       <input
-                        className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="name"
                         value={productForm.name}
                         onChange={handleProductFormChange}
@@ -520,7 +520,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Descripción</label>
                       <input
-                        className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="description"
                         value={productForm.description}
                         onChange={handleProductFormChange}
@@ -543,7 +543,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Color</label>
                       <input
-                        className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="color"
                         type="color"
                         value={productForm.color}
@@ -775,7 +775,7 @@ export default function InventoryApp() {
                     <div>
             <label className="block text-sm font-medium mb-1 text-black">Nombre *</label>
                       <input
-                        className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="nombre"
                         value={cuentaForm.nombre}
                         onChange={handleCuentaFormChange}
@@ -810,7 +810,7 @@ export default function InventoryApp() {
                       <div>
                         <label className="block text-sm font-medium mb-1 text-black">Monto (S/)*</label>
                         <input
-                          className="warehouse-input w-full text-black placeholder:text-black"
+                          className="warehouse-input w-full"
                           name="monto"
                           type="number"
                           min="0"
@@ -856,7 +856,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-black">Estado *</label>
                       <select
-                          className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="estado"
                         value={cuentaForm.estado}
                         onChange={handleCuentaFormChange}
@@ -958,7 +958,7 @@ export default function InventoryApp() {
                     <div>
             <label className="block text-sm font-medium mb-1 text-black">Nombre *</label>
                       <input
-                          className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="nombre"
                         value={listaForm.nombre}
                         onChange={handleListaFormChange}
@@ -969,7 +969,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-black">Fecha *</label>
                       <input
-                          className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="fecha"
                         type="date"
                         value={listaForm.fecha}

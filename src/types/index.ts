@@ -2,9 +2,10 @@
 export interface Product {
   id: string;
   name: string;
-  description: string;
-  category: string;
-  sku: string; // QV (puntos) en la interfaz
+  description: string; // Descripción corta, editable
+  category: string;    // Categoría, editable, enlaza con Category
+  color: string;       // Color diferenciador, formato HEX, editable
+  sku: string;         // QV (puntos) en la interfaz
   stock: number;
   minStock: number;
   price: number;
