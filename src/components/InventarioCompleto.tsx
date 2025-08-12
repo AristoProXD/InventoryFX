@@ -440,25 +440,35 @@ export default function InventoryApp() {
   return (
   <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-900 to-gray-900 transition-colors duration-300">
       {/* Banner superior */}
-  <header className="w-full bg-gradient-to-r from-blue-900/80 via-slate-800/80 to-violet-900/80 backdrop-blur-md shadow-lg border-b border-slate-700 flex items-center justify-between px-8 py-4 sticky top-0 z-50 transition-all duration-300">
-        <div className="flex items-center gap-3">
-          <Box className="h-8 w-8 text-blue-400 drop-shadow-glow" />
-          <span className="text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-glow">Inventario Fuxion Casa</span>
-          <span className="flex items-center gap-1 ml-4 text-green-400 font-semibold text-base bg-green-900/30 px-3 py-1 rounded-full shadow-inner border border-green-700 animate-pulse">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
-            Sincronizado
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-slate-200 hover:text-red-400 font-semibold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-red-400 bg-gradient-to-r from-slate-800/80 to-slate-900/80 hover:from-red-900/80 hover:to-red-900/80 shadow-lg backdrop-blur-md"
-          >
-            <LogOut className="h-5 w-5" />
-            Salir
-          </button>
-        </div>
-      </header>
+  <header className="w-full bg-gradient-to-r from-blue-900/80 via-slate-800/80 to-violet-900/80 backdrop-blur-md shadow-lg border-b border-slate-700 flex items-center justify-between px-2 sm:px-8 py-4 sticky top-0 z-50 transition-all duration-300">
+    <div className="flex items-center gap-2 sm:gap-3">
+      <Box className="h-7 w-7 sm:h-8 sm:w-8 text-blue-400 drop-shadow-glow" />
+      <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-glow">Inventario Fuxion Casa</span>
+    </div>
+    {/* Botón Sincronizado + Salir en móvil, separados en desktop */}
+    <div className="flex items-center gap-2">
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-2 text-green-400 font-semibold px-3 py-2 rounded-xl transition-all border border-green-700 bg-green-900/30 shadow-lg backdrop-blur-md animate-pulse sm:hidden"
+        title="Sincronizado / Salir"
+      >
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
+        Sincronizado
+        <LogOut className="h-5 w-5 text-slate-200 ml-1" />
+      </button>
+      <span className="hidden sm:flex items-center gap-1 text-green-400 font-semibold text-base bg-green-900/30 px-3 py-1 rounded-full shadow-inner border border-green-700 animate-pulse">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
+        Sincronizado
+      </span>
+      <button
+        onClick={handleLogout}
+        className="hidden sm:flex items-center gap-2 text-slate-200 hover:text-red-400 font-semibold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-red-400 bg-gradient-to-r from-slate-800/80 to-slate-900/80 hover:from-red-900/80 hover:to-red-900/80 shadow-lg backdrop-blur-md"
+      >
+        <LogOut className="h-5 w-5" />
+        Salir
+      </button>
+    </div>
+  </header>
       <div className="max-w-6xl mx-auto mb-6 mt-6 px-2 sm:px-4">
         <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
           {TABS.map(tab => (
@@ -503,7 +513,7 @@ export default function InventoryApp() {
             {showProductForm && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
                 <form
-                  className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative animate-fadeIn"
+                  className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative animate-fadeIn border border-blue-900/40"
                   onSubmit={handleProductFormSubmit}
                 >
                   <div className="text-xl font-bold mb-4">{editingProduct ? 'Editar producto' : 'Agregar producto'}</div>
@@ -529,9 +539,9 @@ export default function InventoryApp() {
                       />
                     </div>
                     <div>
-                      <label className="block text-base font-semibold mb-2 text-slate-700">Categoría</label>
+                      <label className="block text-base font-semibold mb-2 text-black">Categoría</label>
                       <select
-                        className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-100/80 via-slate-200/80 to-gray-100/80 border-2 border-blue-900/20 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700"
+                        className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-slate-100 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                         name="category"
                         value={productForm.category}
                         onChange={handleProductFormChange}
@@ -543,9 +553,9 @@ export default function InventoryApp() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Color</label>
+                      <label className="block text-sm font-medium mb-1 text-black">Color</label>
                       <input
-                        className="warehouse-input w-full text-black placeholder:text-black"
+                        className="warehouse-input w-full"
                         name="color"
                         type="color"
                         value={productForm.color}
@@ -555,7 +565,7 @@ export default function InventoryApp() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Precio *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">Precio *</label>
                         <input
                           className="warehouse-input w-full"
                           name="price"
@@ -567,7 +577,7 @@ export default function InventoryApp() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">QV *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">QV *</label>
                         <input
                           className="warehouse-input w-full"
                           name="qv"
@@ -579,7 +589,7 @@ export default function InventoryApp() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Stock *</label>
+                        <label className="block text-sm font-medium mb-1 text-black">Stock *</label>
                         <input
                           className="warehouse-input w-full"
                           name="stock"
@@ -596,7 +606,7 @@ export default function InventoryApp() {
                   <div className="flex gap-4 mt-6 justify-end">
                     <button
                       type="button"
-                      className="warehouse-button bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg"
+                      className="warehouse-button bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg border border-slate-400"
                       onClick={() => {
                         setShowProductForm(false);
                         setEditingProduct(null);
@@ -608,7 +618,7 @@ export default function InventoryApp() {
                     </button>
                     <button
                       type="submit"
-                      className="warehouse-button bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md"
+                      className="warehouse-button bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md border border-blue-900/40"
                     >
                       {editingProduct ? 'Guardar cambios' : 'Agregar'}
                     </button>
@@ -618,20 +628,20 @@ export default function InventoryApp() {
             )}
             {/* ...Inventario UI... */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 mb-6 md:mb-10">
-              <div className="flex-1 min-w-0">
+              <div className="flex flex-col flex-1 min-w-[220px] md:max-w-[350px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Buscar producto</label>
-                <div className="relative">
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-blue-400 pointer-events-none"><Box className="h-6 w-6" /></span>
                   <input
                     type="text"
-                    className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-slate-500"
+                    className="warehouse-input w-full text-lg pl-12 pr-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-slate-500"
                     placeholder="Nombre del producto..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none"><Box className="h-6 w-6" /></span>
                 </div>
               </div>
-              <div className="w-full md:min-w-[220px]">
+              <div className="flex flex-col flex-1 min-w-[180px] md:max-w-[220px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Categoría</label>
                 <select
                   className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
@@ -644,21 +654,21 @@ export default function InventoryApp() {
                   ))}
                 </select>
               </div>
-              <div className="w-full md:min-w-[200px]">
+              <div className="flex flex-col flex-1 min-w-[160px] md:max-w-[200px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Filtros rápidos</label>
                 <div className="flex gap-2 mt-1">
                   <button
-                    className={`warehouse-button px-6 py-3 text-lg rounded-2xl shadow-lg border-2 border-yellow-400/60 transition-all duration-200 ${lowStockFilter ? 'bg-yellow-400 text-black scale-105 ring-2 ring-yellow-300' : 'bg-slate-800/80 text-yellow-200 hover:bg-yellow-400/20 hover:text-yellow-300'}`}
+                    className={`warehouse-button w-full text-lg px-6 py-4 rounded-2xl shadow-lg border-2 border-yellow-400/60 transition-all duration-200 ${lowStockFilter ? 'bg-yellow-400 text-black scale-105 ring-2 ring-yellow-300' : 'bg-slate-800/80 text-yellow-200 hover:bg-yellow-400/20 hover:text-yellow-300'}`}
                     onClick={() => setLowStockFilter(f => !f)}
                     type="button"
                   >
-                    <Minus className="inline-block mr-1 h-5 w-5" /> Bajo stock (0-1)
+                    <Minus className="inline-block mr-1 h-5 w-5" /> Bajo Stock
                   </button>
                 </div>
               </div>
               <div className="flex-1 flex justify-end items-end mt-4 md:mt-0">
                 <button
-                  className="warehouse-button bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white px-8 py-4 rounded-2xl flex items-center gap-3 shadow-xl text-lg font-bold transition-all"
+                  className="warehouse-button text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white flex items-center gap-3 shadow-lg font-bold transition-all"
                   onClick={() => {
                     setEditingProduct(null);
                     setProductForm({ name: '', description: '', category: '', color: '#1e293b', price: '', qv: '', stock: '' });
