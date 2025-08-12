@@ -1,9 +1,21 @@
+// Tipos para listas de clientes
+type ListaProducto = { id: string; name: string; cantidad: number; price: number; qv: number };
+type ListaCliente = {
+  id: string;
+  nombre: string;
+  fecha: string;
+  direccion: string;
+  productos: ListaProducto[];
+  created_at?: string;
+  updated_at?: string;
+};
 // Backup de la configuración actual del componente InventoryApp
 // Nombre: Inventario Completo
 
 "use client";
 
-import { useState, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect, useEffect } from 'react';
+import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
 import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react';
 
 const PRODUCT_CATEGORIES = [
@@ -20,13 +32,7 @@ const PRODUCT_CATEGORIES = [
   'Auxiliar de Venta'
 ];
 
-const INITIAL_PRODUCTS = [
-  { id: '1', name: 'REXET', stock: 45, price: 185, qv: 45, description: '', category: '', color: '#1e293b' },
-  { id: '2', name: 'PRUNEX 1', stock: 8, price: 165, qv: 8, description: '', category: '', color: '#1e293b' },
-  { id: '3', name: 'B-PROTE', stock: 0, price: 195, qv: 0, description: '', category: '', color: '#1e293b' },
-  { id: '4', name: 'THERMATRIX', stock: 22, price: 175, qv: 22, description: '', category: '', color: '#1e293b' },
-  { id: '5', name: 'HGH X3', stock: 12, price: 220, qv: 12, description: '', category: '', color: '#1e293b' }
-];
+// Productos iniciales eliminados, todo desde Supabase
 
 
 
@@ -55,8 +61,46 @@ export default function InventoryApp() {
     window.location.reload();
   }
   const [activeTab, setActiveTab] = useState('inventario');
-  // Inventario states
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  // Inventario, cuentas y listas: sincronización en tiempo real
+  const [products, setProducts] = useState<any[]>([]);
+  const [cuentas, setCuentas] = useState<any[]>([]);
+  const [listas, setListas] = useState<any[]>([]);
+  const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
+
+  useEffect(() => {
+    let channels: any[] = [];
+    async function fetchAll() {
+      setSyncStatus('loading');
+      const [prods, debts, listasC] = await Promise.all([
+        getProducts(),
+        getDebts(),
+        getListasClientes()
+      ]);
+      if (prods) setProducts(prods);
+      if (debts) setCuentas(debts);
+      if (listasC) setListas(listasC);
+      setSyncStatus(prods && debts && listasC ? 'ok' : 'error');
+    }
+    fetchAll();
+    if (supabase) {
+      channels.push(
+        supabase.channel('products-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchAll)
+          .subscribe()
+      );
+      channels.push(
+        supabase.channel('debts-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, fetchAll)
+          .subscribe()
+      );
+      channels.push(
+        supabase.channel('listas-clientes-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'listas_clientes' }, fetchAll)
+          .subscribe()
+      );
+    }
+    return () => { channels.forEach(ch => ch && supabase && supabase.removeChannel(ch)); };
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
@@ -73,7 +117,7 @@ export default function InventoryApp() {
   });
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Estados para Cuentas y Listas
+  // Estados para Cuentas
   type CuentaProducto = { id: string; name: string; cantidad: number; price: number };
   type Cuenta = {
     id: string;
@@ -84,16 +128,130 @@ export default function InventoryApp() {
     productos?: CuentaProducto[];
     estado: 'Pendiente' | 'Cancelado';
   };
-  const [cuentas, setCuentas] = useState<Cuenta[]>([]);
-  type ListaProducto = { id: string; name: string; cantidad: number; price: number; qv: number };
-  type ListaCliente = {
-    id: string;
+  const [showCuentaForm, setShowCuentaForm] = useState(false);
+  const [editingCuenta, setEditingCuenta] = useState<string | null>(null);
+  const [cuentaForm, setCuentaForm] = useState<{
     nombre: string;
     fecha: string;
-    direccion: string;
-    productos: ListaProducto[];
-  };
-  const [listas, setListas] = useState<ListaCliente[]>([]);
+    tipo: 'Monto' | 'Productos';
+    monto: string;
+    productos: CuentaProducto[];
+    estado: 'Pendiente' | 'Cancelado';
+  }>({
+    nombre: '',
+    fecha: '',
+    tipo: 'Monto',
+    monto: '',
+    productos: [],
+    estado: 'Pendiente',
+  });
+  const [cuentaFormError, setCuentaFormError] = useState<string | null>(null);
+  // --- Cuentas helpers (form/product logic, only one set) ---
+  function handleCuentaFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    const { name, value } = e.target;
+    setCuentaForm(prev => ({ ...prev, [name]: value }));
+    setCuentaFormError(null);
+  }
+
+  function handleCuentaTipoChange(tipo: 'Monto' | 'Productos') {
+    setCuentaForm(prev => ({ ...prev, tipo, monto: '', productos: [] }));
+    setCuentaFormError(null);
+  }
+
+  function handleCuentaProductoAdd() {
+    if (products.length === 0) return;
+    setCuentaForm(prev => ({
+      ...prev,
+      productos: [
+        ...prev.productos,
+        { id: products[0].id, name: products[0].name, cantidad: 1, price: products[0].price }
+      ]
+    }));
+  }
+
+  function handleCuentaProductoChange(idx: number, field: 'id' | 'cantidad') {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setCuentaForm(prev => {
+        const productos = [...prev.productos];
+        if (field === 'id') {
+          const prod = products.find(p => p.id === e.target.value);
+          if (prod) {
+            productos[idx] = { id: prod.id, name: prod.name, cantidad: productos[idx].cantidad, price: prod.price };
+          }
+        } else if (field === 'cantidad') {
+          productos[idx] = { ...productos[idx], cantidad: Math.max(1, Number(e.target.value)) };
+        }
+        return { ...prev, productos };
+      });
+    };
+  }
+
+  function handleCuentaProductoRemove(idx: number) {
+    setCuentaForm(prev => ({
+      ...prev,
+      productos: prev.productos.filter((_, i) => i !== idx)
+    }));
+  }
+
+  // --- CRUD y edición de cuentas con Supabase ---
+  const statusMap: Record<string, 'pending' | 'cancelled'> = { 'Pendiente': 'pending', 'Cancelado': 'cancelled' };
+
+  async function handleCuentaFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!cuentaForm.nombre.trim()) {
+      setCuentaFormError('El nombre es obligatorio');
+      return;
+    }
+    if (!cuentaForm.fecha) {
+      setCuentaFormError('La fecha es obligatoria');
+      return;
+    }
+    if (cuentaForm.tipo === 'Monto' && (!cuentaForm.monto || isNaN(Number(cuentaForm.monto)))) {
+      setCuentaFormError('Monto inválido');
+      return;
+    }
+    if (cuentaForm.tipo === 'Productos' && (!cuentaForm.productos || cuentaForm.productos.length === 0)) {
+      setCuentaFormError('Agrega al menos un producto');
+      return;
+    }
+    const mappedStatus = statusMap[cuentaForm.estado] || 'pending';
+    if (editingCuenta) {
+      await supabase.from('debts').delete().eq('id', editingCuenta);
+    }
+    await supabase.from('debts').insert({
+      nombre: cuentaForm.nombre,
+      fecha: cuentaForm.fecha,
+      tipo: cuentaForm.tipo,
+      monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : null,
+      productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : null,
+      estado: cuentaForm.estado,
+      status: mappedStatus
+    });
+    setShowCuentaForm(false);
+    setEditingCuenta(null);
+    setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' });
+    setCuentaFormError(null);
+  }
+
+  async function handleDeleteCuenta(cuenta: any) {
+    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`)) {
+      await supabase.from('debts').delete().eq('id', cuenta.id);
+    }
+  }
+
+  function handleEditCuenta(cuenta: any) {
+    setEditingCuenta(cuenta.id);
+    setCuentaForm({
+      nombre: cuenta.nombre,
+      fecha: cuenta.fecha,
+      tipo: cuenta.tipo,
+      monto: cuenta.monto ? cuenta.monto.toString() : '',
+      productos: cuenta.productos ? cuenta.productos.map((p: any) => ({ ...p })) : [],
+      estado: cuenta.estado
+    });
+    setShowCuentaForm(true);
+  }
+  // --- Estados para Listas ---
   const [showListaForm, setShowListaForm] = useState(false);
   const [editingLista, setEditingLista] = useState<string | null>(null);
   const [listaForm, setListaForm] = useState<{
@@ -215,146 +373,7 @@ export default function InventoryApp() {
     });
     setShowListaForm(true);
   }
-  const [showCuentaForm, setShowCuentaForm] = useState(false);
-  const [editingCuenta, setEditingCuenta] = useState<string | null>(null);
-  const [cuentaForm, setCuentaForm] = useState<{
-    nombre: string;
-    fecha: string;
-    tipo: 'Monto' | 'Productos';
-    monto: string;
-    productos: CuentaProducto[];
-    estado: 'Pendiente' | 'Cancelado';
-  }>({
-    nombre: '',
-    fecha: '',
-    tipo: 'Monto',
-    monto: '',
-    productos: [],
-    estado: 'Pendiente',
-  });
-  const [cuentaFormError, setCuentaFormError] = useState<string | null>(null);
-  // Funciones para cuentas
-  function handleCuentaFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value } = e.target;
-    setCuentaForm(prev => ({ ...prev, [name]: value }));
-    setCuentaFormError(null);
-  }
-
-  function handleCuentaTipoChange(tipo: 'Monto' | 'Productos') {
-    setCuentaForm(prev => ({ ...prev, tipo, monto: '', productos: [] }));
-    setCuentaFormError(null);
-  }
-
-  function handleCuentaProductoAdd() {
-    // Agrega un producto vacío (por defecto el primero del inventario)
-    if (products.length === 0) return;
-    setCuentaForm(prev => ({
-      ...prev,
-      productos: [
-        ...prev.productos,
-        { id: products[0].id, name: products[0].name, cantidad: 1, price: products[0].price }
-      ]
-    }));
-  }
-
-  function handleCuentaProductoChange(idx: number, field: 'id' | 'cantidad') {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setCuentaForm(prev => {
-        const productos = [...prev.productos];
-        if (field === 'id') {
-          const prod = products.find(p => p.id === e.target.value);
-          if (prod) {
-            productos[idx] = { id: prod.id, name: prod.name, cantidad: productos[idx].cantidad, price: prod.price };
-          }
-        } else if (field === 'cantidad') {
-          productos[idx] = { ...productos[idx], cantidad: Math.max(1, Number(e.target.value)) };
-        }
-        return { ...prev, productos };
-      });
-    };
-  }
-
-  function handleCuentaProductoRemove(idx: number) {
-    setCuentaForm(prev => ({
-      ...prev,
-      productos: prev.productos.filter((_, i) => i !== idx)
-    }));
-  }
-
-  function validateCuentaForm() {
-    if (!cuentaForm.nombre.trim()) return 'El nombre es obligatorio';
-    if (!cuentaForm.fecha) return 'La fecha es obligatoria';
-    if (cuentaForm.tipo === 'Monto') {
-      if (!cuentaForm.monto || isNaN(Number(cuentaForm.monto))) return 'Monto inválido';
-    } else {
-      if (cuentaForm.productos.length === 0) return 'Agrega al menos un producto';
-      for (const p of cuentaForm.productos) {
-        if (!p.id || !products.find(prod => prod.id === p.id)) return 'Producto inválido';
-        if (!p.cantidad || isNaN(Number(p.cantidad)) || Number(p.cantidad) < 1) return 'Cantidad inválida';
-      }
-    }
-    return null;
-  }
-
-  function handleCuentaFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const error = validateCuentaForm();
-    if (error) {
-      setCuentaFormError(error);
-      return;
-    }
-    if (editingCuenta) {
-      setCuentas(prev => prev.map(c =>
-        c.id === editingCuenta
-          ? {
-              ...c,
-              nombre: cuentaForm.nombre,
-              fecha: cuentaForm.fecha,
-              tipo: cuentaForm.tipo,
-              monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : undefined,
-              productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : undefined,
-              estado: cuentaForm.estado
-            }
-          : c
-      ));
-    } else {
-      setCuentas(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          nombre: cuentaForm.nombre,
-          fecha: cuentaForm.fecha,
-          tipo: cuentaForm.tipo,
-          monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : undefined,
-          productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : undefined,
-          estado: cuentaForm.estado
-        }
-      ]);
-    }
-    setShowCuentaForm(false);
-    setEditingCuenta(null);
-    setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' });
-    setCuentaFormError(null);
-  }
-
-  function handleDeleteCuenta(cuenta: Cuenta) {
-    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre}"?`)) {
-      setCuentas(prev => prev.filter(c => c.id !== cuenta.id));
-    }
-  }
-
-  function handleEditCuenta(cuenta: Cuenta) {
-    setEditingCuenta(cuenta.id);
-    setCuentaForm({
-      nombre: cuenta.nombre,
-      fecha: cuenta.fecha,
-      tipo: cuenta.tipo,
-      monto: cuenta.monto?.toString() || '',
-      productos: cuenta.productos ? cuenta.productos.map(p => ({ ...p })) : [],
-      estado: cuenta.estado
-    });
-    setShowCuentaForm(true);
-  }
+  // ...existing code...
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -363,8 +382,12 @@ export default function InventoryApp() {
     return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  function updateStock(id: string, delta: number) {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: Math.max(0, p.stock + delta) } : p));
+  async function updateStock(id: string, delta: number) {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    const newStock = Math.max(0, Number(prod.stock) + delta);
+    await updateProductStock(id, newStock);
+    // El realtime actualizará el estado
   }
 
   function handleProductFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -381,7 +404,7 @@ export default function InventoryApp() {
     return null;
   }
 
-  function handleProductFormSubmit(e: React.FormEvent) {
+  async function handleProductFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     const error = validateProductForm();
     if (error) {
@@ -389,34 +412,18 @@ export default function InventoryApp() {
       return;
     }
     if (editingProduct) {
-      setProducts(prev => prev.map(p =>
-        p.id === editingProduct
-          ? {
-              ...p,
-              name: productForm.name,
-              description: productForm.description,
-              category: productForm.category,
-              color: productForm.color,
-              price: Number(productForm.price),
-              qv: Number(productForm.qv),
-              stock: Number(productForm.stock)
-            }
-          : p
-      ));
+      // Actualizar producto existente (solo stock por ahora)
+      await updateProductStock(editingProduct, Number(productForm.stock));
     } else {
-      setProducts(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          name: productForm.name,
-          description: productForm.description,
-          category: productForm.category,
-          color: productForm.color,
-          price: Number(productForm.price),
-          qv: Number(productForm.qv),
-          stock: Number(productForm.stock)
-        }
-      ]);
+      await addProduct({
+        name: productForm.name,
+        description: productForm.description,
+        category: productForm.category,
+        color: productForm.color,
+        price: Number(productForm.price),
+        qv: Number(productForm.qv),
+        stock: Number(productForm.stock)
+      });
     }
     setShowProductForm(false);
     setEditingProduct(null);
@@ -424,9 +431,11 @@ export default function InventoryApp() {
     setFormError(null);
   }
 
-  function handleDeleteProduct(product: any) {
+  async function handleDeleteProduct(product: any) {
     if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) {
-      setProducts(prev => prev.filter(p => p.id !== product.id));
+      if (supabase) {
+        await supabase.from('products').delete().eq('id', product.id);
+      }
     }
   }
 
@@ -449,16 +458,23 @@ export default function InventoryApp() {
     <div className="flex items-center gap-2">
       <button
         onClick={handleLogout}
-        className="flex items-center gap-2 text-green-400 font-semibold px-3 py-2 rounded-xl transition-all border border-green-700 bg-green-900/30 shadow-lg backdrop-blur-md animate-pulse sm:hidden"
+        className={`flex items-center gap-2 font-semibold px-3 py-2 rounded-xl transition-all border shadow-lg backdrop-blur-md animate-pulse sm:hidden
+          ${syncStatus === 'ok' ? 'text-green-400 border-green-700 bg-green-900/30' : syncStatus === 'loading' ? 'text-yellow-300 border-yellow-700 bg-yellow-900/30' : 'text-red-400 border-red-700 bg-red-900/30'}`}
         title="Sincronizado / Salir"
       >
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
-        Sincronizado
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
+          <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
+        </svg>
+        {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
         <LogOut className="h-5 w-5 text-slate-200 ml-1" />
       </button>
-      <span className="hidden sm:flex items-center gap-1 text-green-400 font-semibold text-base bg-green-900/30 px-3 py-1 rounded-full shadow-inner border border-green-700 animate-pulse">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
-        Sincronizado
+      <span className={`hidden sm:flex items-center gap-1 font-semibold text-base px-3 py-1 rounded-full shadow-inner border animate-pulse
+        ${syncStatus === 'ok' ? 'text-green-400 bg-green-900/30 border-green-700' : syncStatus === 'loading' ? 'text-yellow-300 bg-yellow-900/30 border-yellow-700' : 'text-red-400 bg-red-900/30 border-red-700'}`}
+      >
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
+          <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
+        </svg>
+        {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
       </span>
       <button
         onClick={handleLogout}
@@ -806,6 +822,8 @@ export default function InventoryApp() {
                         value={cuentaForm.fecha}
                         onChange={handleCuentaFormChange}
                         required
+                        style={{ color: '#111' }}
+                        placeholder="dd/mm/yyyy"
                       />
                     </div>
                     <div>
@@ -815,9 +833,10 @@ export default function InventoryApp() {
                         name="tipo"
                         value={cuentaForm.tipo}
                         onChange={e => handleCuentaTipoChange(e.target.value as 'Monto' | 'Productos')}
+                        style={{ color: '#111' }}
                       >
-                        <option value="Monto">Monto</option>
-                        <option value="Productos">Productos</option>
+                        <option value="Monto" style={{ color: '#111' }}>Monto</option>
+                        <option value="Productos" style={{ color: '#111' }}>Productos</option>
                       </select>
                     </div>
                     {cuentaForm.tipo === 'Monto' ? (
@@ -924,7 +943,7 @@ export default function InventoryApp() {
                           : <>
                               Productos:
                               <ul className="ml-2 list-disc text-xs text-slate-600">
-                                {cuenta.productos?.map((p, i) => (
+                                {cuenta.productos?.map((p: any, i: number) => (
                                   <li key={i}>{p.name} x{p.cantidad} <span className="text-slate-400">(S/ {p.price})</span></li>
                                 ))}
                               </ul>
@@ -1023,6 +1042,7 @@ export default function InventoryApp() {
                               min="1"
                               value={prod.cantidad}
                               onChange={handleListaProductoChange(idx, 'cantidad')}
+                              style={{ color: '#111' }}
                             />
             <span className="text-xs text-black">S/ {prod.price} | QV: {prod.qv}</span>
                             <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleListaProductoRemove(idx)}>
@@ -1066,8 +1086,8 @@ export default function InventoryApp() {
             ) : (
               <div className="mt-10 flex flex-col gap-6">
                 {listas.map(lista => {
-                  const totalCosto = lista.productos.reduce((acc, p) => acc + (p.price * p.cantidad), 0);
-                  const totalQV = lista.productos.reduce((acc, p) => acc + (p.qv * p.cantidad), 0);
+                  const totalCosto = lista.productos.reduce((acc: number, p: ListaProducto) => acc + (p.price * p.cantidad), 0);
+                  const totalQV = lista.productos.reduce((acc: number, p: ListaProducto) => acc + (p.qv * p.cantidad), 0);
                   return (
                     <div key={lista.id} className="bg-gradient-to-br from-gray-900/90 via-slate-900/95 to-slate-800/90 border-2 border-blue-900/40 rounded-2xl shadow-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all backdrop-blur-md">
                       <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">
@@ -1079,7 +1099,7 @@ export default function InventoryApp() {
                         <div className="text-sm text-violet-200 font-semibold">
                           Productos:
                           <ul className="ml-2 list-disc text-xs text-slate-600">
-                            {lista.productos.map((p, i) => (
+                            {lista.productos.map((p: ListaProducto, i: number) => (
                               <li key={i}>{p.name} x{p.cantidad} <span className="text-slate-400">(S/ {p.price} | QV: {p.qv})</span></li>
                             ))}
                           </ul>
