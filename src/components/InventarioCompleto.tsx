@@ -459,8 +459,8 @@ export default function InventoryApp() {
           </button>
         </div>
       </header>
-      <div className="max-w-6xl mx-auto mb-10 mt-10">
-        <div className="flex gap-4 justify-center">
+      <div className="max-w-6xl mx-auto mb-6 mt-6 px-2 sm:px-4">
+        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
           {TABS.map(tab => (
             <button
               key={tab.key}
@@ -473,11 +473,11 @@ export default function InventoryApp() {
           ))}
         </div>
       </div>
-  <main className="max-w-7xl mx-auto px-2 md:px-8 py-14">
+  <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 py-6 sm:py-10 md:py-14">
         {activeTab === 'inventario' && (
           <>
             {/* Dashboard de métricas */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-14">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5 md:gap-8 mb-8 md:mb-14">
               <div className="rounded-2xl shadow-xl bg-gradient-to-br from-blue-900/60 via-slate-800/80 to-slate-900/80 backdrop-blur-md border border-blue-800 flex flex-col items-center justify-center p-6 text-center">
                 <div className="text-3xl font-extrabold text-blue-300 drop-shadow-glow">{totalProductos}</div>
                 <div className="text-sm md:text-base text-blue-100 font-semibold mt-1">Productos</div>
@@ -617,8 +617,8 @@ export default function InventoryApp() {
               </div>
             )}
             {/* ...Inventario UI... */}
-            <div className="flex flex-col md:flex-row md:items-end gap-6 mb-10">
-              <div className="flex-1">
+            <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 mb-6 md:mb-10">
+              <div className="flex-1 min-w-0">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Buscar producto</label>
                 <div className="relative">
                   <input
@@ -631,7 +631,7 @@ export default function InventoryApp() {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none"><Box className="h-6 w-6" /></span>
                 </div>
               </div>
-              <div className="min-w-[220px]">
+              <div className="w-full md:min-w-[220px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Categoría</label>
                 <select
                   className="warehouse-input w-full text-lg px-6 py-4 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
@@ -644,7 +644,7 @@ export default function InventoryApp() {
                   ))}
                 </select>
               </div>
-              <div className="min-w-[200px]">
+              <div className="w-full md:min-w-[200px]">
                 <label className="block text-base font-semibold mb-2 text-slate-200">Filtros rápidos</label>
                 <div className="flex gap-2 mt-1">
                   <button
@@ -656,7 +656,7 @@ export default function InventoryApp() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 flex justify-end items-end">
+              <div className="flex-1 flex justify-end items-end mt-4 md:mt-0">
                 <button
                   className="warehouse-button bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white px-8 py-4 rounded-2xl flex items-center gap-3 shadow-xl text-lg font-bold transition-all"
                   onClick={() => {
@@ -672,7 +672,7 @@ export default function InventoryApp() {
             {filteredProducts.length === 0 ? (
               <div className="text-center text-gray-500">No hay productos para mostrar.</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
                 {filteredProducts.map(product => (
                   <div
                     key={product.id}
