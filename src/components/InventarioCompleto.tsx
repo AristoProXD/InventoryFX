@@ -28,6 +28,8 @@ const INITIAL_PRODUCTS = [
   { id: '5', name: 'HGH X3', stock: 12, price: 220, qv: 12, description: '', category: '', color: '#1e293b' }
 ];
 
+
+
 function getStatusText(product: any) {
   if (product.stock === 0) return 'Sin stock';
   if (product.stock === 1) return 'Bajo stock';
@@ -509,7 +511,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Nombre *</label>
                       <input
-                        className="warehouse-input w-full"
+                        className="warehouse-input w-full text-black placeholder:text-black"
                         name="name"
                         value={productForm.name}
                         onChange={handleProductFormChange}
@@ -520,7 +522,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Descripción</label>
                       <input
-                        className="warehouse-input w-full"
+                        className="warehouse-input w-full text-black placeholder:text-black"
                         name="description"
                         value={productForm.description}
                         onChange={handleProductFormChange}
@@ -543,7 +545,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Color</label>
                       <input
-                        className="warehouse-input w-full"
+                        className="warehouse-input w-full text-black placeholder:text-black"
                         name="color"
                         type="color"
                         value={productForm.color}
@@ -775,7 +777,7 @@ export default function InventoryApp() {
                     <div>
             <label className="block text-sm font-medium mb-1 text-black">Nombre *</label>
                       <input
-                        className="warehouse-input w-full"
+                        className="warehouse-input w-full text-black placeholder:text-black"
                         name="nombre"
                         value={cuentaForm.nombre}
                         onChange={handleCuentaFormChange}
@@ -810,7 +812,7 @@ export default function InventoryApp() {
                       <div>
                         <label className="block text-sm font-medium mb-1 text-black">Monto (S/)*</label>
                         <input
-                          className="warehouse-input w-full"
+                          className="warehouse-input w-full text-black placeholder:text-black"
                           name="monto"
                           type="number"
                           min="0"
@@ -856,7 +858,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-black">Estado *</label>
                       <select
-                        className="warehouse-input w-full"
+                          className="warehouse-input w-full text-black placeholder:text-black"
                         name="estado"
                         value={cuentaForm.estado}
                         onChange={handleCuentaFormChange}
@@ -958,7 +960,7 @@ export default function InventoryApp() {
                     <div>
             <label className="block text-sm font-medium mb-1 text-black">Nombre *</label>
                       <input
-                        className="warehouse-input w-full"
+                          className="warehouse-input w-full text-black placeholder:text-black"
                         name="nombre"
                         value={listaForm.nombre}
                         onChange={handleListaFormChange}
@@ -969,7 +971,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-black">Fecha *</label>
                       <input
-                        className="warehouse-input w-full"
+                          className="warehouse-input w-full text-black placeholder:text-black"
                         name="fecha"
                         type="date"
                         value={listaForm.fecha}
