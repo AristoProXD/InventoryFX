@@ -215,6 +215,10 @@ export default function InventoryApp() {
       return;
     }
     const mappedStatus = statusMap[cuentaForm.estado] || 'pending';
+    if (!supabase) {
+      setCuentaFormError('No hay conexión con la base de datos.');
+      return;
+    }
     let result;
     if (editingCuenta) {
       await supabase.from('debts').delete().eq('id', editingCuenta);
@@ -239,7 +243,7 @@ export default function InventoryApp() {
   }
 
   async function handleDeleteCuenta(cuenta: any) {
-    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`)) {
+    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`) && supabase) {
       await supabase.from('debts').delete().eq('id', cuenta.id);
     }
   }
@@ -330,6 +334,10 @@ export default function InventoryApp() {
     const error = validateListaForm();
     if (error) {
       setListaFormError(error);
+      return;
+    }
+    if (!supabase) {
+      setListaFormError('No hay conexión con la base de datos.');
       return;
     }
     if (editingLista) {

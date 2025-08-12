@@ -215,18 +215,27 @@ export default function InventoryApp() {
       return;
     }
     const mappedStatus = statusMap[cuentaForm.estado] || 'pending';
+    if (!supabase) {
+      setCuentaFormError('No hay conexión con la base de datos.');
+      return;
+    }
+    let result;
     if (editingCuenta) {
       await supabase.from('debts').delete().eq('id', editingCuenta);
     }
-    await supabase.from('debts').insert({
+    result = await supabase.from('debts').insert({
       nombre: cuentaForm.nombre,
       fecha: cuentaForm.fecha,
       tipo: cuentaForm.tipo,
-      monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : null,
+      monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : 0,
       productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : null,
       estado: cuentaForm.estado,
       status: mappedStatus
     });
+    if (result.error) {
+      setCuentaFormError('Error al guardar la cuenta: ' + result.error.message);
+      return;
+    }
     setShowCuentaForm(false);
     setEditingCuenta(null);
     setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' });
@@ -234,7 +243,7 @@ export default function InventoryApp() {
   }
 
   async function handleDeleteCuenta(cuenta: any) {
-    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`)) {
+    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`) && supabase) {
       await supabase.from('debts').delete().eq('id', cuenta.id);
     }
   }
@@ -320,37 +329,35 @@ export default function InventoryApp() {
     return null;
   }
 
-  function handleListaFormSubmit(e: React.FormEvent) {
+  async function handleListaFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     const error = validateListaForm();
     if (error) {
       setListaFormError(error);
       return;
     }
-    if (editingLista) {
-      setListas(prev => prev.map(l =>
-        l.id === editingLista
-          ? {
-              ...l,
-              nombre: listaForm.nombre,
-              fecha: listaForm.fecha,
-              direccion: listaForm.direccion,
-              productos: listaForm.productos
-            }
-          : l
-      ));
-    } else {
-      setListas(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          nombre: listaForm.nombre,
-          fecha: listaForm.fecha,
-          direccion: listaForm.direccion,
-          productos: listaForm.productos
-        }
-      ]);
+    if (!supabase) {
+      setListaFormError('No hay conexión con la base de datos.');
+      return;
     }
+    if (editingLista) {
+      await supabase.from('listas_clientes').update({
+        nombre: listaForm.nombre,
+        fecha: listaForm.fecha,
+        direccion: listaForm.direccion,
+        productos: listaForm.productos
+      }).eq('id', editingLista);
+    } else {
+      await supabase.from('listas_clientes').insert({
+        nombre: listaForm.nombre,
+        fecha: listaForm.fecha,
+        direccion: listaForm.direccion,
+        productos: listaForm.productos
+      });
+    }
+    // Forzar recarga inmediata de listas
+    const listasActualizadas = await getListasClientes();
+    if (listasActualizadas) setListas(listasActualizadas);
     setShowListaForm(false);
     setEditingLista(null);
     setListaForm({ nombre: '', fecha: '', direccion: '', productos: [] });
@@ -358,8 +365,11 @@ export default function InventoryApp() {
   }
 
   function handleDeleteLista(lista: ListaCliente) {
-    if (window.confirm(`¿Eliminar la lista de "${lista.nombre}"?`)) {
-      setListas(prev => prev.filter(l => l.id !== lista.id));
+    if (window.confirm(`¿Eliminar la lista de "${lista.nombre}"?`) && supabase) {
+      supabase.from('listas_clientes').delete().eq('id', lista.id).then(async () => {
+        const listasActualizadas = await getListasClientes();
+        if (listasActualizadas) setListas(listasActualizadas);
+      });
     }
   }
 
@@ -875,6 +885,7 @@ export default function InventoryApp() {
                                 min="1"
                                 value={prod.cantidad}
                                 onChange={handleCuentaProductoChange(idx, 'cantidad')}
+                                style={{ color: '#111' }}
                               />
                               <span className="text-xs text-black">S/ {prod.price}</span>
                               <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleCuentaProductoRemove(idx)}>
@@ -1015,7 +1026,7 @@ export default function InventoryApp() {
                     <div>
                       <label className="block text-sm font-medium mb-1 text-black">Dirección *</label>
                       <input
-                        className="warehouse-input w-full"
+                        className="warehouse-input w-full text-black placeholder:text-black"
                         name="direccion"
                         value={listaForm.direccion}
                         onChange={handleListaFormChange}
