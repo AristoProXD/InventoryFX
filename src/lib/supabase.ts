@@ -142,7 +142,7 @@ export const getProducts = async () => {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .order('created_at', { ascending: true })
+      .order('order', { ascending: true })
     
     if (error) throw error
     return data

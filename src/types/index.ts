@@ -13,6 +13,7 @@ export interface Product {
   supplier: string;
   lastUpdated: string;
   status: 'active' | 'inactive' | 'low_stock' | 'out_of_stock';
+  order?: number; // Orden de aparición en la UI
 }
 
 // ===== USUARIO FAMILIAR =====
