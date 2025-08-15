@@ -711,7 +711,12 @@ export default function InventoryApp() {
               <div className="text-center text-gray-500">No hay productos para mostrar.</div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-                {filteredProducts.map(product => (
+                {products.filter(product => {
+                  const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+                  const matchesCategory = !categoryFilter || product.category === categoryFilter;
+                  const matchesLowStock = !lowStockFilter || product.stock <= 1;
+                  return matchesSearch && matchesCategory && matchesLowStock;
+                }).map(product => (
                   <div
                     key={product.id}
                     className="warehouse-card relative flex flex-col bg-gradient-to-br from-slate-800/80 via-slate-900/80 to-gray-900/80 border border-violet-900/60 shadow-2xl rounded-2xl hover:scale-[1.03] hover:shadow-violet-900/40 transition-all duration-200 group p-0 overflow-hidden min-h-[140px] backdrop-blur-md"

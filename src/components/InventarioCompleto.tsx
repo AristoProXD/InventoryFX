@@ -63,6 +63,8 @@ export default function InventoryApp() {
   const [activeTab, setActiveTab] = useState('inventario');
   // Inventario, cuentas y listas: sincronización en tiempo real
   const [products, setProducts] = useState<any[]>([]);
+  // Estado para mantener el orden de los productos
+  const [productOrder, setProductOrder] = useState<string[]>([]);
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [listas, setListas] = useState<any[]>([]);
   const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
@@ -76,7 +78,21 @@ export default function InventoryApp() {
         getDebts(),
         getListasClientes()
       ]);
-      if (prods) setProducts(prods);
+      if (prods) {
+        setProducts(prods);
+        // Si es la primera carga o hay productos nuevos/eliminados, actualiza el orden
+        setProductOrder(prevOrder => {
+          // Si prevOrder está vacío, inicializa con el orden actual
+          if (prevOrder.length === 0) return prods.map((p: any) => p.id);
+          // Si hay productos nuevos, agrégalos al final
+          const prodsIds = prods.map((p: any) => p.id);
+          let newOrder = prevOrder.filter(id => prodsIds.includes(id));
+          prodsIds.forEach(id => {
+            if (!newOrder.includes(id)) newOrder.push(id);
+          });
+          return newOrder;
+        });
+      }
       if (debts) setCuentas(debts);
       if (listasC) setListas(listasC);
       setSyncStatus(prods && debts && listasC ? 'ok' : 'error');
@@ -385,7 +401,13 @@ export default function InventoryApp() {
   }
   // ...existing code...
 
-  const filteredProducts = products.filter(product => {
+
+  // Mantener el orden de los productos según productOrder
+  const orderedProducts = productOrder
+    .map(id => products.find(p => p.id === id))
+    .filter(Boolean) as typeof products;
+
+  const filteredProducts = orderedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || product.category === categoryFilter;
     const matchesLowStock = !lowStockFilter || product.stock <= 1;
