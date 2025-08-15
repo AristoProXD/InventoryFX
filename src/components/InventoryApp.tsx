@@ -734,13 +734,13 @@ export default function InventoryApp() {
                           onClick={() => {
                             setEditingProduct(product.id);
                             setProductForm({
-                              name: product.name,
-                              description: product.description,
-                              category: product.category,
-                              color: product.color,
-                              price: product.price.toString(),
-                              qv: product.qv.toString(),
-                              stock: product.stock.toString()
+                              name: product.name ?? '',
+                              description: product.description ?? '',
+                              category: product.category ?? '',
+                              color: typeof product.color === 'string' && product.color ? product.color : '#1e293b',
+                              price: product.price !== undefined && product.price !== null ? product.price.toString() : '',
+                              qv: product.qv !== undefined && product.qv !== null ? product.qv.toString() : '',
+                              stock: product.stock !== undefined && product.stock !== null ? product.stock.toString() : ''
                             });
                             setShowProductForm(true);
                           }}
@@ -871,7 +871,7 @@ export default function InventoryApp() {
                       </div>
                     ) : (
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-black">Productos *</label>
+                        <label className="block text-sm font-medium mb-1 text-black" style={{color: '#111'}}>Productos *</label>
                         <div className="flex flex-col gap-2">
                           {cuentaForm.productos.map((prod, idx) => (
                             <div key={idx} className="flex gap-2 items-center">
@@ -1044,12 +1044,12 @@ export default function InventoryApp() {
                         {listaForm.productos.map((prod, idx) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <select
-                              className="warehouse-input text-base px-4 py-3 rounded-xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-200"
+                              className="warehouse-input text-base px-4 py-3 rounded-xl bg-white border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                               value={prod.id}
                               onChange={handleListaProductoChange(idx, 'id')}
                             >
                               {products.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                                <option key={p.id} value={p.id} className="text-black">{p.name}</option>
                               ))}
                             </select>
                             <input

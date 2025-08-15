@@ -63,8 +63,6 @@ export default function InventoryApp() {
   const [activeTab, setActiveTab] = useState('inventario');
   // Inventario, cuentas y listas: sincronización en tiempo real
   const [products, setProducts] = useState<any[]>([]);
-  // Estado para mantener el orden de los productos
-  const [productOrder, setProductOrder] = useState<string[]>([]);
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [listas, setListas] = useState<any[]>([]);
   const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
@@ -78,21 +76,7 @@ export default function InventoryApp() {
         getDebts(),
         getListasClientes()
       ]);
-      if (prods) {
-        setProducts(prods);
-        // Si es la primera carga o hay productos nuevos/eliminados, actualiza el orden
-        setProductOrder(prevOrder => {
-          // Si prevOrder está vacío, inicializa con el orden actual
-          if (prevOrder.length === 0) return prods.map((p: any) => p.id);
-          // Si hay productos nuevos, agrégalos al final
-          const prodsIds = prods.map((p: any) => p.id);
-          let newOrder = prevOrder.filter(id => prodsIds.includes(id));
-          prodsIds.forEach(id => {
-            if (!newOrder.includes(id)) newOrder.push(id);
-          });
-          return newOrder;
-        });
-      }
+      if (prods) setProducts(prods);
       if (debts) setCuentas(debts);
       if (listasC) setListas(listasC);
       setSyncStatus(prods && debts && listasC ? 'ok' : 'error');
@@ -401,13 +385,7 @@ export default function InventoryApp() {
   }
   // ...existing code...
 
-
-  // Mantener el orden de los productos según productOrder
-  const orderedProducts = productOrder
-    .map(id => products.find(p => p.id === id))
-    .filter(Boolean) as typeof products;
-
-  const filteredProducts = orderedProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || product.category === categoryFilter;
     const matchesLowStock = !lowStockFilter || product.stock <= 1;
@@ -733,7 +711,12 @@ export default function InventoryApp() {
               <div className="text-center text-gray-500">No hay productos para mostrar.</div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-                {filteredProducts.map(product => (
+                {products.filter(product => {
+                  const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+                  const matchesCategory = !categoryFilter || product.category === categoryFilter;
+                  const matchesLowStock = !lowStockFilter || product.stock <= 1;
+                  return matchesSearch && matchesCategory && matchesLowStock;
+                }).map(product => (
                   <div
                     key={product.id}
                     className="warehouse-card relative flex flex-col bg-gradient-to-br from-slate-800/80 via-slate-900/80 to-gray-900/80 border border-violet-900/60 shadow-2xl rounded-2xl hover:scale-[1.03] hover:shadow-violet-900/40 transition-all duration-200 group p-0 overflow-hidden min-h-[140px] backdrop-blur-md"
@@ -751,13 +734,13 @@ export default function InventoryApp() {
                           onClick={() => {
                             setEditingProduct(product.id);
                             setProductForm({
-                              name: product.name,
-                              description: product.description,
-                              category: product.category,
-                              color: product.color,
-                              price: product.price.toString(),
-                              qv: product.qv.toString(),
-                              stock: product.stock.toString()
+                              name: product.name ?? '',
+                              description: product.description ?? '',
+                              category: product.category ?? '',
+                              color: typeof product.color === 'string' && product.color ? product.color : '#1e293b',
+                              price: product.price !== undefined && product.price !== null ? product.price.toString() : '',
+                              qv: product.qv !== undefined && product.qv !== null ? product.qv.toString() : '',
+                              stock: product.stock !== undefined && product.stock !== null ? product.stock.toString() : ''
                             });
                             setShowProductForm(true);
                           }}
@@ -888,7 +871,7 @@ export default function InventoryApp() {
                       </div>
                     ) : (
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-black">Productos *</label>
+                        <label className="block text-sm font-medium mb-1 text-black" style={{color: '#111'}}>Productos *</label>
                         <div className="flex flex-col gap-2">
                           {cuentaForm.productos.map((prod, idx) => (
                             <div key={idx} className="flex gap-2 items-center">
@@ -1061,12 +1044,12 @@ export default function InventoryApp() {
                         {listaForm.productos.map((prod, idx) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <select
-                              className="warehouse-input text-base px-4 py-3 rounded-xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-200"
+                              className="warehouse-input text-base px-4 py-3 rounded-xl bg-white border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                               value={prod.id}
                               onChange={handleListaProductoChange(idx, 'id')}
                             >
                               {products.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                                <option key={p.id} value={p.id} className="text-black">{p.name}</option>
                               ))}
                             </select>
                             <input
