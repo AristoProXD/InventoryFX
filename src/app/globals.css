@@ -1,3 +1,13 @@
+/* Oculta los spinners de los inputs type=number en todos los navegadores */
+.warehouse-input::-webkit-outer-spin-button,
+.warehouse-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.warehouse-input[type='number'] {
+  -moz-appearance: textfield; /* Firefox */
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

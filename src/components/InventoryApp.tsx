@@ -16,6 +16,20 @@ type ListaCliente = {
 
 import { useState, useLayoutEffect, useEffect } from 'react';
 import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
+
+// Nueva función para actualizar todos los campos del producto
+async function updateProduct(id: string, data: {
+  name: string;
+  description: string;
+  category: string;
+  color: string;
+  price: number;
+  qv: number;
+  stock: number;
+}) {
+  if (!supabase) return;
+  return await supabase.from('products').update(data).eq('id', id);
+}
 import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react';
 
 const PRODUCT_CATEGORIES = [
@@ -66,6 +80,19 @@ export default function InventoryApp() {
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [listas, setListas] = useState<any[]>([]);
   const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
+
+  // Última actualización/sincronización de productos
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const last = products.reduce((acc: string|null, p: any) => {
+        if (p.updated_at && (!acc || acc < p.updated_at)) return p.updated_at;
+        return acc;
+      }, null);
+      setLastSync(last);
+    }
+  }, [products]);
 
   useEffect(() => {
     let channels: any[] = [];
@@ -422,14 +449,22 @@ export default function InventoryApp() {
       return;
     }
     if (editingProduct) {
-      // Actualizar producto existente (solo stock por ahora)
-      await updateProductStock(editingProduct, Number(productForm.stock));
+      // Actualizar todos los campos del producto
+      await updateProduct(editingProduct, {
+        name: productForm.name,
+        description: productForm.description,
+        category: productForm.category,
+        color: productForm.color || '#1e293b',
+        price: Number(productForm.price),
+        qv: Number(productForm.qv),
+        stock: Number(productForm.stock)
+      });
     } else {
       await addProduct({
         name: productForm.name,
         description: productForm.description,
         category: productForm.category,
-        color: productForm.color,
+        color: productForm.color || '#1e293b',
         price: Number(productForm.price),
         qv: Number(productForm.qv),
         stock: Number(productForm.stock)
@@ -478,13 +513,18 @@ export default function InventoryApp() {
         {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
         <LogOut className="h-5 w-5 text-slate-200 ml-1" />
       </button>
-      <span className={`hidden sm:flex items-center gap-1 font-semibold text-base px-3 py-1 rounded-full shadow-inner border animate-pulse
+      <span className={`hidden sm:flex flex-col items-start gap-0 font-semibold text-base px-3 py-1 rounded-full shadow-inner border animate-pulse
         ${syncStatus === 'ok' ? 'text-green-400 bg-green-900/30 border-green-700' : syncStatus === 'loading' ? 'text-yellow-300 bg-yellow-900/30 border-yellow-700' : 'text-red-400 bg-red-900/30 border-red-700'}`}
       >
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
-          <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
-        </svg>
-        {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
+        <span className="flex items-center gap-1">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="inline-block">
+            <circle cx="10" cy="10" r="8" fill={syncStatus === 'ok' ? '#22c55e' : syncStatus === 'loading' ? '#fde047' : '#ef4444'} />
+          </svg>
+          {syncStatus === 'ok' ? 'Sincronizado' : syncStatus === 'loading' ? 'Sincronizando...' : 'Sin conexión'}
+        </span>
+        <span className="text-xs text-slate-300 font-normal mt-0.5" style={{lineHeight:'1.1'}}>
+          {lastSync ? `Última sync: ${new Date(lastSync).toLocaleString()}` : 'Sincronizando...'}
+        </span>
       </span>
       <button
         onClick={handleLogout}
@@ -535,6 +575,7 @@ export default function InventoryApp() {
                 <div className="text-sm md:text-base text-green-100 font-semibold mt-1">Valor total</div>
               </div>
             </div>
+            {/* Última sincronización ahora se muestra en el header */}
             {/* Formulario modal para agregar/editar producto */}
             {showProductForm && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
@@ -592,41 +633,98 @@ export default function InventoryApp() {
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="block text-sm font-medium mb-1 text-black">Precio *</label>
-                        <input
-                          className="warehouse-input w-full"
-                          name="price"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          inputMode="decimal"
-                          value={productForm.price}
-                          onChange={handleProductFormChange}
-                          required
-                        />
+                        <div className="relative flex items-center">
+                          <button
+                            type="button"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, price: Math.max(0, Number(prev.price || 0) - 1).toString() }))}
+                          >
+                            <span aria-hidden>−</span>
+                          </button>
+                          <input
+                            className="warehouse-input w-full text-center"
+                            name="price"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={productForm.price}
+                            onChange={handleProductFormChange}
+                            required
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, price: (Number(prev.price || 0) + 1).toString() }))}
+                          >
+                            <span aria-hidden>+</span>
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-black">QV *</label>
-                        <input
-                          className="warehouse-input w-full"
-                          name="qv"
-                          type="number"
-                          min="0"
-                          value={productForm.qv}
-                          onChange={handleProductFormChange}
-                          required
-                        />
+                        <div className="relative flex items-center">
+                          <button
+                            type="button"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, qv: Math.max(0, Number(prev.qv || 0) - 1).toString() }))}
+                          >
+                            <span aria-hidden>−</span>
+                          </button>
+                          <input
+                            className="warehouse-input w-full text-center"
+                            name="qv"
+                            type="number"
+                            min="0"
+                            value={productForm.qv}
+                            onChange={handleProductFormChange}
+                            required
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, qv: (Number(prev.qv || 0) + 1).toString() }))}
+                          >
+                            <span aria-hidden>+</span>
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-black">Stock *</label>
-                        <input
-                          className="warehouse-input w-full"
-                          name="stock"
-                          type="number"
-                          min="0"
-                          value={productForm.stock}
-                          onChange={handleProductFormChange}
-                          required
-                        />
+                        <div className="relative flex items-center">
+                          <button
+                            type="button"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, stock: Math.max(0, Number(prev.stock || 0) - 1).toString() }))}
+                          >
+                            <span aria-hidden>−</span>
+                          </button>
+                          <input
+                            className="warehouse-input w-full text-center"
+                            name="stock"
+                            type="number"
+                            min="0"
+                            value={productForm.stock}
+                            onChange={handleProductFormChange}
+                            required
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 px-2 py-1 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                            tabIndex={-1}
+                            onClick={() => setProductForm(prev => ({ ...prev, stock: (Number(prev.stock || 0) + 1).toString() }))}
+                          >
+                            <span aria-hidden>+</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -876,22 +974,61 @@ export default function InventoryApp() {
                           {cuentaForm.productos.map((prod, idx) => (
                             <div key={idx} className="flex gap-2 items-center">
                               <select
-                                className="warehouse-input text-base px-4 py-3 rounded-xl bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-gray-900/80 border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-200"
+                                className="warehouse-input text-base px-4 py-3 rounded-xl bg-white border-2 border-blue-900/40 shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                                 value={prod.id}
                                 onChange={handleCuentaProductoChange(idx, 'id')}
                               >
                                 {products.map(p => (
-                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                  <option key={p.id} value={p.id} className="text-black bg-white">{p.name}</option>
                                 ))}
                               </select>
-                              <input
-                                className="warehouse-input w-20"
-                                type="number"
-                                min="1"
-                                value={prod.cantidad}
-                                onChange={handleCuentaProductoChange(idx, 'cantidad')}
-                                style={{ color: '#111' }}
-                              />
+                              <div className="relative flex items-center w-24">
+                                <button
+                                  type="button"
+                                  className="absolute left-0 top-1/2 -translate-y-1/2 px-1 py-0.5 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                                  tabIndex={-1}
+                                  onClick={() => {
+                                    setCuentaForm(prev => {
+                                      const productos = [...prev.productos];
+                                      const val = Number(productos[idx].cantidad) || 1;
+                                      productos[idx] = { ...productos[idx], cantidad: Math.max(1, val - 1) };
+                                      return { ...prev, productos };
+                                    });
+                                  }}
+                                >
+                                  <span aria-hidden>−</span>
+                                </button>
+                                <input
+                                  className="warehouse-input w-20 text-center"
+                                  type="number"
+                                  min="1"
+                                  value={prod.cantidad === 0 ? '' : prod.cantidad}
+                                  onChange={e => {
+                                    const val = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
+                                    setCuentaForm(prev => {
+                                      const productos = [...prev.productos];
+                                      productos[idx] = { ...productos[idx], cantidad: val === '' ? 0 : Number(val) };
+                                      return { ...prev, productos };
+                                    });
+                                  }}
+                                  style={{ color: '#111' }}
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute right-0 top-1/2 -translate-y-1/2 px-1 py-0.5 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                                  tabIndex={-1}
+                                  onClick={() => {
+                                    setCuentaForm(prev => {
+                                      const productos = [...prev.productos];
+                                      const val = Number(productos[idx].cantidad) || 1;
+                                      productos[idx] = { ...productos[idx], cantidad: val + 1 };
+                                      return { ...prev, productos };
+                                    });
+                                  }}
+                                >
+                                  <span aria-hidden>+</span>
+                                </button>
+                              </div>
                               <span className="text-xs text-black">S/ {prod.price}</span>
                               <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleCuentaProductoRemove(idx)}>
                                 <Trash2 className="h-4 w-4" />
@@ -1052,14 +1189,53 @@ export default function InventoryApp() {
                                 <option key={p.id} value={p.id} className="text-black">{p.name}</option>
                               ))}
                             </select>
-                            <input
-                              className="warehouse-input w-20"
-                              type="number"
-                              min="1"
-                              value={prod.cantidad}
-                              onChange={handleListaProductoChange(idx, 'cantidad')}
-                              style={{ color: '#111' }}
-                            />
+                            <div className="relative flex items-center w-24">
+                              <button
+                                type="button"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 px-1 py-0.5 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                                tabIndex={-1}
+                                onClick={() => {
+                                  setListaForm(prev => {
+                                    const productos = [...prev.productos];
+                                    const val = Number(productos[idx].cantidad) || 1;
+                                    productos[idx] = { ...productos[idx], cantidad: Math.max(1, val - 1) };
+                                    return { ...prev, productos };
+                                  });
+                                }}
+                              >
+                                <span aria-hidden>−</span>
+                              </button>
+                              <input
+                                className="warehouse-input w-20 text-center"
+                                type="number"
+                                min="1"
+                                value={prod.cantidad === 0 ? '' : prod.cantidad}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
+                                  setListaForm(prev => {
+                                    const productos = [...prev.productos];
+                                    productos[idx] = { ...productos[idx], cantidad: val === '' ? 0 : Number(val) };
+                                    return { ...prev, productos };
+                                  });
+                                }}
+                                style={{ color: '#111' }}
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-0 top-1/2 -translate-y-1/2 px-1 py-0.5 text-lg text-slate-500 hover:text-blue-600 focus:outline-none"
+                                tabIndex={-1}
+                                onClick={() => {
+                                  setListaForm(prev => {
+                                    const productos = [...prev.productos];
+                                    const val = Number(productos[idx].cantidad) || 1;
+                                    productos[idx] = { ...productos[idx], cantidad: val + 1 };
+                                    return { ...prev, productos };
+                                  });
+                                }}
+                              >
+                                <span aria-hidden>+</span>
+                              </button>
+                            </div>
             <span className="text-xs text-black">S/ {prod.price} | QV: {prod.qv}</span>
                             <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleListaProductoRemove(idx)}>
                               <Trash2 className="h-4 w-4" />

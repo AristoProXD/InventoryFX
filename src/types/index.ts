@@ -16,6 +16,15 @@ export interface Product {
   order?: number; // Orden de aparición en la UI
 }
 
+// MOVIMIENTO DE PRODUCTO (egreso/venta)
+export interface ProductMovement {
+  id: string;
+  product_id: string;
+  quantity: number;
+  type: 'egreso' | 'ingreso';
+  created_at: string;
+}
+
 // ===== USUARIO FAMILIAR =====
 export interface User {
   username: string;

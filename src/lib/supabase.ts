@@ -1,4 +1,43 @@
 // =====================
+// MOVIMIENTOS DE PRODUCTOS
+// =====================
+import { ProductMovement } from '../types'
+
+// Registrar un movimiento de producto (egreso/ingreso)
+export const addProductMovement = async (movement: Omit<ProductMovement, 'id' | 'created_at'>) => {
+  if (!supabase) return null
+  try {
+    const { data, error } = await supabase
+      .from('product_movements')
+      .insert([{ ...movement }])
+      .select()
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error adding product movement:', error)
+    return null
+  }
+}
+
+// Consultar movimientos de productos (por rango de fechas, opcional)
+export const getProductMovements = async (from?: string, to?: string) => {
+  if (!supabase) return null
+  try {
+    let query = supabase
+      .from('product_movements')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (from) query = query.gte('created_at', from)
+    if (to) query = query.lte('created_at', to)
+    const { data, error } = await query
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching product movements:', error)
+    return null
+  }
+}
+// =====================
 // LISTAS DE CLIENTES
 // =====================
 export interface DatabaseListaCliente {
