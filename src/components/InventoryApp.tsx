@@ -14,7 +14,7 @@ type ListaCliente = {
 
 "use client";
 
-import { useState, useLayoutEffect, useEffect } from 'react';
+import { useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
 
 // Nueva función para actualizar todos los campos del producto
@@ -412,12 +412,14 @@ export default function InventoryApp() {
   }
   // ...existing code...
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || product.category === categoryFilter;
-    const matchesLowStock = !lowStockFilter || product.stock <= 1;
-    return matchesSearch && matchesCategory && matchesLowStock;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !categoryFilter || product.category === categoryFilter;
+      const matchesLowStock = !lowStockFilter || product.stock <= 1;
+      return matchesSearch && matchesCategory && matchesLowStock;
+    });
+  }, [products, searchTerm, categoryFilter, lowStockFilter]);
 
   async function updateStock(id: string, delta: number) {
     const prod = products.find(p => p.id === id);
@@ -808,13 +810,8 @@ export default function InventoryApp() {
             {filteredProducts.length === 0 ? (
               <div className="text-center text-gray-500">No hay productos para mostrar.</div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-                {products.filter(product => {
-                  const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-                  const matchesCategory = !categoryFilter || product.category === categoryFilter;
-                  const matchesLowStock = !lowStockFilter || product.stock <= 1;
-                  return matchesSearch && matchesCategory && matchesLowStock;
-                }).map(product => (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8 animate-fade-in">
+                {filteredProducts.map(product => (
                   <div
                     key={product.id}
                     className="warehouse-card relative flex flex-col bg-gradient-to-br from-slate-800/80 via-slate-900/80 to-gray-900/80 border border-violet-900/60 shadow-2xl rounded-2xl hover:scale-[1.03] hover:shadow-violet-900/40 transition-all duration-200 group p-0 overflow-hidden min-h-[140px] backdrop-blur-md"

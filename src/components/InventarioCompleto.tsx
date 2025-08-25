@@ -14,7 +14,7 @@ type ListaCliente = {
 
 "use client";
 
-import { useState, useLayoutEffect, useEffect } from 'react';
+import { useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
 
 // Nueva función para actualizar todos los campos del producto
@@ -412,12 +412,14 @@ export default function InventoryApp() {
   }
   // ...existing code...
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || product.category === categoryFilter;
-    const matchesLowStock = !lowStockFilter || product.stock <= 1;
-    return matchesSearch && matchesCategory && matchesLowStock;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !categoryFilter || product.category === categoryFilter;
+      const matchesLowStock = !lowStockFilter || product.stock <= 1;
+      return matchesSearch && matchesCategory && matchesLowStock;
+    });
+  }, [products, searchTerm, categoryFilter, lowStockFilter]);
 
   async function updateStock(id: string, delta: number) {
     const prod = products.find(p => p.id === id);

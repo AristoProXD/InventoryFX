@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Inventario Fuxion Casa - Sistema de Gestión de Almacén',
   description: 'Sistema de gestión de inventario en tiempo real para Fuxion Casa',
+  icons: {
+    icon: '/favicon-fx.svg',
+    shortcut: '/favicon-fx.svg',
+    apple: '/favicon-fx.svg',
+  },
 }
 
 export default function RootLayout({
