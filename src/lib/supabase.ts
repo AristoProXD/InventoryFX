@@ -60,7 +60,7 @@ export const getListasClientes = async () => {
     if (error) throw error
     return data
   } catch (error) {
-    console.error('Error fetching listas_clientes:', error)
+    console.error('Error fetching listas_clientes:', (error as any)?.message ?? error)
     return null
   }
 }
@@ -181,12 +181,13 @@ export const getProducts = async () => {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .order('order', { ascending: true })
+      // Usamos created_at para evitar fallar si no existe la columna "order" en la base
+      .order('created_at', { ascending: true })
     
     if (error) throw error
     return data
   } catch (error) {
-    console.error('Error fetching products:', error)
+    console.error('Error fetching products:', (error as any)?.message ?? error)
     return null
   }
 }
@@ -239,7 +240,7 @@ export const getDebts = async () => {
     if (error) throw error
     return data
   } catch (error) {
-    console.error('Error fetching debts:', error)
+    console.error('Error fetching debts:', (error as any)?.message ?? error)
     return null
   }
 }
