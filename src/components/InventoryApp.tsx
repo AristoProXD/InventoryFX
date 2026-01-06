@@ -1,3 +1,5 @@
+"use client";
+
 // Tipos para listas de clientes
 type ListaProducto = { id: string; name: string; cantidad: number; price: number; qv: number };
 type ListaCliente = {
@@ -9,10 +11,6 @@ type ListaCliente = {
   created_at?: string;
   updated_at?: string;
 };
-// Backup de la configuración actual del componente InventoryApp
-// Nombre: Inventario Completo
-
-"use client";
 
 import { useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
