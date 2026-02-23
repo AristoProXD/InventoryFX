@@ -80,7 +80,7 @@ export default function InventoryApp() {
   const [lastSync, setLastSync] = useState<string | null>(null)
 
   // Polling para sincronizar datos cada 3 segundos
-  const { data: polledData, syncStatus } = useMultiplePolling(
+  const { data: polledData, syncStatus, forceSync } = useMultiplePolling(
     {
       products: getProducts,
       cuentas: getDebts,
@@ -248,6 +248,8 @@ export default function InventoryApp() {
       setCuentaFormError('Error al guardar la cuenta')
       return
     }
+    // Forzar sincronización inmediata
+    await forceSync()
     setShowCuentaForm(false)
     setEditingCuenta(null)
     setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' })
@@ -257,6 +259,8 @@ export default function InventoryApp() {
   async function handleDeleteCuenta(cuenta: any) {
     if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`)) {
       await deleteDebt(cuenta.id)
+      // Forzar sincronización inmediata
+      await forceSync()
     }
   }
 
@@ -363,9 +367,8 @@ export default function InventoryApp() {
         productos: listaForm.productos
       })
     }
-    // Forzar recarga inmediata de listas
-    const listasActualizadas = await getListasClientes()
-    if (listasActualizadas) setListas(listasActualizadas)
+    // Forzar sincronización inmediata
+    await forceSync()
     setShowListaForm(false)
     setEditingLista(null)
     setListaForm({ nombre: '', fecha: '', direccion: '', productos: [] })
@@ -375,6 +378,8 @@ export default function InventoryApp() {
   async function handleDeleteLista(lista: ListaCliente) {
     if (window.confirm(`¿Eliminar la lista de "${lista.nombre}"?`)) {
       await deleteListaCliente(lista.id)
+      // Forzar sincronización inmediata
+      await forceSync()
     }
   }
 
@@ -450,6 +455,8 @@ export default function InventoryApp() {
         stock: Number(productForm.stock)
       });
     }
+    // Forzar sincronización inmediata
+    await forceSync()
     setShowProductForm(false);
     setEditingProduct(null)
     setProductForm({ name: '', description: '', category: '', color: '#1e293b', price: '', qv: '', stock: '' })
@@ -459,6 +466,8 @@ export default function InventoryApp() {
   async function handleDeleteProduct(product: any) {
     if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) {
       await deleteProductDB(product.id)
+      // Forzar sincronización inmediata
+      await forceSync()
     }
   }
 

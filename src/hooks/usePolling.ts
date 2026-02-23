@@ -81,6 +81,7 @@ export const usePolling = (
 
 /**
  * Hook para polling múltiple de diferentes tipos de datos
+ * Retorna también función para forzar sync inmediato
  */
 export const useMultiplePolling = (
   fetchFunctions: { [key: string]: () => Promise<any> },
@@ -91,59 +92,70 @@ export const useMultiplePolling = (
   const [loading, setLoading] = useState(true)
   const [syncStatus, setSyncStatus] = useState<'loading' | 'ok' | 'error'>('loading')
   const prevDataRef = useRef<string>('')
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null)
+
+  const fetchAllData = async () => {
+    try {
+      setSyncStatus('loading')
+      setLoading(true)
+
+      const results = await Promise.all(
+        Object.entries(fetchFunctions).map(async ([key, fn]) => {
+          try {
+            const result = await fn()
+            return [key, result] as const
+          } catch (err) {
+            console.error(`Error fetching ${key}:`, err)
+            return [key, null] as const
+          }
+        })
+      )
+
+      const newData = Object.fromEntries(results)
+      
+      // Comparar con datos anteriores
+      const currentDataStr = JSON.stringify(newData)
+      if (prevDataRef.current !== currentDataStr) {
+        prevDataRef.current = currentDataStr
+        setData(newData)
+      }
+
+      setSyncStatus('ok')
+      setLoading(false)
+    } catch (err) {
+      console.error('Error in fetchAllData:', err)
+      setSyncStatus('error')
+      setLoading(false)
+    }
+  }
+
+  // Función para forzar sync inmediato
+  const forceSync = async () => {
+    await fetchAllData()
+  }
 
   useEffect(() => {
     let isMounted = true
-    let intervalId: NodeJS.Timeout
-
-    const fetchAllData = async () => {
-      try {
-        setSyncStatus('loading')
-        setLoading(true)
-
-        const results = await Promise.all(
-          Object.entries(fetchFunctions).map(async ([key, fn]) => {
-            try {
-              const result = await fn()
-              return [key, result] as const
-            } catch (err) {
-              console.error(`Error fetching ${key}:`, err)
-              return [key, null] as const
-            }
-          })
-        )
-
-        if (!isMounted) return
-
-        const newData = Object.fromEntries(results)
-        
-        // Comparar con datos anteriores
-        const currentDataStr = JSON.stringify(newData)
-        if (prevDataRef.current !== currentDataStr) {
-          prevDataRef.current = currentDataStr
-          setData(newData)
-        }
-
-        setSyncStatus('ok')
-        setLoading(false)
-      } catch (err) {
-        if (!isMounted) return
-        setSyncStatus('error')
-        setLoading(false)
-      }
-    }
 
     // Fetch inicial
-    fetchAllData()
+    if (isMounted) {
+      fetchAllData()
+    }
 
     // Polling cada N segundos
-    intervalId = setInterval(fetchAllData, interval)
+    intervalIdRef.current = setInterval(() => {
+      if (isMounted) {
+        fetchAllData()
+      }
+    }, interval)
 
     return () => {
       isMounted = false
-      clearInterval(intervalId)
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current)
+      }
     }
   }, [fetchFunctions, interval])
 
-  return { data, loading, syncStatus }
+  return { data, loading, syncStatus, forceSync }
 }
