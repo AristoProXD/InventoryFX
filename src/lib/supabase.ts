@@ -1,115 +1,3 @@
-// =====================
-// MOVIMIENTOS DE PRODUCTOS
-// =====================
-import { ProductMovement } from '../types'
-
-// Registrar un movimiento de producto (egreso/ingreso)
-export const addProductMovement = async (movement: Omit<ProductMovement, 'id' | 'created_at'>) => {
-  if (!supabase) return null
-  try {
-    const { data, error } = await supabase
-      .from('product_movements')
-      .insert([{ ...movement }])
-      .select()
-    if (error) throw error
-    return data?.[0]
-  } catch (error) {
-    console.error('Error adding product movement:', error)
-    return null
-  }
-}
-
-// Consultar movimientos de productos (por rango de fechas, opcional)
-export const getProductMovements = async (from?: string, to?: string) => {
-  if (!supabase) return null
-  try {
-    let query = supabase
-      .from('product_movements')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (from) query = query.gte('created_at', from)
-    if (to) query = query.lte('created_at', to)
-    const { data, error } = await query
-    if (error) throw error
-    return data
-  } catch (error) {
-    console.error('Error fetching product movements:', error)
-    return null
-  }
-}
-// =====================
-// LISTAS DE CLIENTES
-// =====================
-export interface DatabaseListaCliente {
-  id: string
-  nombre: string
-  fecha: string // ISO date
-  direccion?: string
-  productos: any[] // [{id, name, cantidad, price, qv}]
-  created_at?: string
-  updated_at?: string
-}
-
-export const getListasClientes = async () => {
-  if (!supabase) return null
-  try {
-    const { data, error } = await supabase
-      .from('listas_clientes')
-      .select('*')
-      .order('created_at', { ascending: true })
-    if (error) throw error
-    return data
-  } catch (error) {
-    console.error('Error fetching listas_clientes:', (error as any)?.message ?? error)
-    return null
-  }
-}
-
-export const addListaCliente = async (lista: Omit<DatabaseListaCliente, 'id' | 'created_at' | 'updated_at'>) => {
-  if (!supabase) return null
-  try {
-    const { data, error } = await supabase
-      .from('listas_clientes')
-      .insert([{ ...lista }])
-      .select()
-    if (error) throw error
-    return data?.[0]
-  } catch (error) {
-    console.error('Error adding lista_cliente:', error)
-    return null
-  }
-}
-
-export const updateListaCliente = async (id: string, lista: Partial<DatabaseListaCliente>) => {
-  if (!supabase) return null
-  try {
-    const { data, error } = await supabase
-      .from('listas_clientes')
-      .update({ ...lista, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-    if (error) throw error
-    return data?.[0]
-  } catch (error) {
-    console.error('Error updating lista_cliente:', error)
-    return null
-  }
-}
-
-export const removeListaCliente = async (id: string) => {
-  if (!supabase) return null
-  try {
-    const { error } = await supabase
-      .from('listas_clientes')
-      .delete()
-      .eq('id', id)
-    if (error) throw error
-    return true
-  } catch (error) {
-    console.error('Error removing lista_cliente:', error)
-    return false
-  }
-}
 import { createClient } from '@supabase/supabase-js'
 
 // Configuración de Supabase - Actualizado para Inventario Fuxion Casa 2025
@@ -276,5 +164,33 @@ export const removeDebt = async (id: string) => {
   } catch (error) {
     console.error('Error removing debt:', error)
     return false
+  }
+}
+
+// =====================
+// LISTAS DE CLIENTES
+// =====================
+export interface DatabaseListaCliente {
+  id: string
+  nombre: string
+  fecha: string
+  direccion?: string
+  productos: any[]
+  created_at?: string
+  updated_at?: string
+}
+
+export const getListasClientes = async () => {
+  if (!supabase) return null
+  try {
+    const { data, error } = await supabase
+      .from('listas_clientes')
+      .select('*')
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching listas_clientes:', (error as any)?.message ?? error)
+    return null
   }
 }

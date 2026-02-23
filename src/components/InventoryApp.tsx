@@ -1,34 +1,34 @@
 "use client";
 
-// Tipos para listas de clientes
-type ListaProducto = { id: string; name: string; cantidad: number; price: number; qv: number };
+import { useState, useLayoutEffect, useEffect, useMemo } from 'react'
+import { 
+  getProducts, 
+  addProduct, 
+  updateProductStock, 
+  updateProduct as updateProductDB,
+  deleteProduct as deleteProductDB,
+  getDebts, 
+  addDebt,
+  deleteDebt,
+  getListasClientes,
+  addListaCliente,
+  updateListaCliente,
+  deleteListaCliente,
+} from '../lib/database'
+import { useSocketEvent } from '../hooks/useSocket'
+import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react'
+
+// ===== TIPOS =====
+type ListaProducto = { id: string; name: string; cantidad: number; price: number; qv: number }
 type ListaCliente = {
-  id: string;
-  nombre: string;
-  fecha: string;
-  direccion: string;
-  productos: ListaProducto[];
-  created_at?: string;
-  updated_at?: string;
-};
-
-import { useState, useLayoutEffect, useEffect, useMemo } from 'react';
-import { supabase, getProducts, addProduct, updateProductStock, getDebts, getListasClientes } from '../lib/supabase';
-
-// Nueva función para actualizar todos los campos del producto
-async function updateProduct(id: string, data: {
-  name: string;
-  description: string;
-  category: string;
-  color: string;
-  price: number;
-  qv: number;
-  stock: number;
-}) {
-  if (!supabase) return;
-  return await supabase.from('products').update(data).eq('id', id);
+  id: string
+  nombre: string
+  fecha: string
+  direccion: string
+  productos: ListaProducto[]
+  created_at?: string
+  updated_at?: string
 }
-import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react';
 
 const PRODUCT_CATEGORIES = [
   'Limpia',
@@ -42,7 +42,7 @@ const PRODUCT_CATEGORIES = [
   'Gastronomia',
   'Cosmecéutica',
   'Auxiliar de Venta'
-];
+]
 
 // Productos iniciales eliminados, todo desde Supabase
 
@@ -80,52 +80,80 @@ export default function InventoryApp() {
   const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
 
   // Última actualización/sincronización de productos
-  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<string | null>(null)
 
   useEffect(() => {
     if (products.length > 0) {
-      const last = products.reduce((acc: string|null, p: any) => {
-        if (p.updated_at && (!acc || acc < p.updated_at)) return p.updated_at;
-        return acc;
-      }, null);
-      setLastSync(last);
+      const last = products.reduce((acc: string | null, p: any) => {
+        if (p.updated_at && (!acc || acc < p.updated_at)) return p.updated_at
+        return acc
+      }, null)
+      setLastSync(last)
     }
-  }, [products]);
+  }, [products])
 
+  // Socket.io para sincronización en tiempo real
+  useSocketEvent('products-updated', (prods: any[]) => {
+    setProducts(prods)
+    setSyncStatus('ok')
+  })
+
+  useSocketEvent('product-added', (product: any) => {
+    setProducts(prev => [...prev, product])
+  })
+
+  useSocketEvent('product-updated', (product: any) => {
+    setProducts(prev => prev.map(p => p.id === product.id ? product : p))
+  })
+
+  useSocketEvent('product-deleted', ({ id }: { id: string }) => {
+    setProducts(prev => prev.filter(p => p.id !== id))
+  })
+
+  useSocketEvent('debts-updated', (debts: any[]) => {
+    setCuentas(debts)
+  })
+
+  useSocketEvent('debt-added', (debt: any) => {
+    setCuentas(prev => [...prev, debt])
+  })
+
+  useSocketEvent('debt-deleted', ({ id }: { id: string }) => {
+    setCuentas(prev => prev.filter(d => d.id !== id))
+  })
+
+  useSocketEvent('listas-updated', (listas: any[]) => {
+    setListas(listas)
+  })
+
+  useSocketEvent('lista-added', (lista: any) => {
+    setListas(prev => [...prev, lista])
+  })
+
+  useSocketEvent('lista-updated', (lista: any) => {
+    setListas(prev => prev.map(l => l.id === lista.id ? lista : l))
+  })
+
+  useSocketEvent('lista-deleted', ({ id }: { id: string }) => {
+    setListas(prev => prev.filter(l => l.id !== id))
+  })
+
+  // Cargar datos iniciales
   useEffect(() => {
-    let channels: any[] = [];
     async function fetchAll() {
-      setSyncStatus('loading');
+      setSyncStatus('loading')
       const [prods, debts, listasC] = await Promise.all([
         getProducts(),
         getDebts(),
         getListasClientes()
-      ]);
-      if (prods) setProducts(prods);
-      if (debts) setCuentas(debts);
-      if (listasC) setListas(listasC);
-      setSyncStatus(prods && debts && listasC ? 'ok' : 'error');
+      ])
+      if (prods) setProducts(prods)
+      if (debts) setCuentas(debts)
+      if (listasC) setListas(listasC)
+      setSyncStatus(prods && debts && listasC ? 'ok' : 'error')
     }
-    fetchAll();
-    if (supabase) {
-      channels.push(
-        supabase.channel('products-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchAll)
-          .subscribe()
-      );
-      channels.push(
-        supabase.channel('debts-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, fetchAll)
-          .subscribe()
-      );
-      channels.push(
-        supabase.channel('listas-clientes-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'listas_clientes' }, fetchAll)
-          .subscribe()
-      );
-    }
-    return () => { channels.forEach(ch => ch && supabase && supabase.removeChannel(ch)); };
-  }, []);
+    fetchAll()
+  }, [])
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
@@ -218,58 +246,59 @@ export default function InventoryApp() {
     }));
   }
 
-  // --- CRUD y edición de cuentas con Supabase ---
-  const statusMap: Record<string, 'pending' | 'cancelled'> = { 'Pendiente': 'pending', 'Cancelado': 'cancelled' };
+  // --- CRUD y edición de cuentas ---
+  const statusMap: Record<string, 'pending' | 'cancelled'> = { 'Pendiente': 'pending', 'Cancelado': 'cancelled' }
 
   async function handleCuentaFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
+    e.preventDefault()
     if (!cuentaForm.nombre.trim()) {
-      setCuentaFormError('El nombre es obligatorio');
-      return;
+      setCuentaFormError('El nombre es obligatorio')
+      return
     }
     if (!cuentaForm.fecha) {
-      setCuentaFormError('La fecha es obligatoria');
-      return;
+      setCuentaFormError('La fecha es obligatoria')
+      return
     }
     if (cuentaForm.tipo === 'Monto' && (!cuentaForm.monto || isNaN(Number(cuentaForm.monto)))) {
-      setCuentaFormError('Monto inválido');
-      return;
+      setCuentaFormError('Monto inválido')
+      return
     }
     if (cuentaForm.tipo === 'Productos' && (!cuentaForm.productos || cuentaForm.productos.length === 0)) {
-      setCuentaFormError('Agrega al menos un producto');
-      return;
+      setCuentaFormError('Agrega al menos un producto')
+      return
     }
-    const mappedStatus = statusMap[cuentaForm.estado] || 'pending';
-    if (!supabase) {
-      setCuentaFormError('No hay conexión con la base de datos.');
-      return;
-    }
-    let result;
+    const mappedStatus = statusMap[cuentaForm.estado] || 'pending'
+    
     if (editingCuenta) {
-      await supabase.from('debts').delete().eq('id', editingCuenta);
+      await deleteDebt(editingCuenta)
     }
-    result = await supabase.from('debts').insert({
-      nombre: cuentaForm.nombre,
-      fecha: cuentaForm.fecha,
-      tipo: cuentaForm.tipo,
-      monto: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : 0,
-      productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : null,
-      estado: cuentaForm.estado,
+    
+    const result = await addDebt({
+      type: 'nos_deben',
+      name: cuentaForm.nombre,
+      amount: cuentaForm.tipo === 'Monto' ? Number(cuentaForm.monto) : 0,
+      description: JSON.stringify({
+        tipo: cuentaForm.tipo,
+        productos: cuentaForm.tipo === 'Productos' ? cuentaForm.productos : null,
+        estado: cuentaForm.estado
+      }),
+      date: cuentaForm.fecha,
       status: mappedStatus
-    });
-    if (result.error) {
-      setCuentaFormError('Error al guardar la cuenta: ' + result.error.message);
-      return;
+    })
+    
+    if (!result) {
+      setCuentaFormError('Error al guardar la cuenta')
+      return
     }
-    setShowCuentaForm(false);
-    setEditingCuenta(null);
-    setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' });
-    setCuentaFormError(null);
+    setShowCuentaForm(false)
+    setEditingCuenta(null)
+    setCuentaForm({ nombre: '', fecha: '', tipo: 'Monto', monto: '', productos: [], estado: 'Pendiente' })
+    setCuentaFormError(null)
   }
 
   async function handleDeleteCuenta(cuenta: any) {
-    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`) && supabase) {
-      await supabase.from('debts').delete().eq('id', cuenta.id);
+    if (window.confirm(`¿Eliminar la cuenta de "${cuenta.nombre || cuenta.name}"?`)) {
+      await deleteDebt(cuenta.id)
     }
   }
 
@@ -351,50 +380,43 @@ export default function InventoryApp() {
       if (!p.id || !products.find(prod => prod.id === p.id)) return 'Producto inválido';
       if (!p.cantidad || isNaN(Number(p.cantidad)) || Number(p.cantidad) < 1) return 'Cantidad inválida';
     }
-    return null;
+    return null
   }
 
   async function handleListaFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const error = validateListaForm();
+    e.preventDefault()
+    const error = validateListaForm()
     if (error) {
-      setListaFormError(error);
-      return;
-    }
-    if (!supabase) {
-      setListaFormError('No hay conexión con la base de datos.');
-      return;
+      setListaFormError(error)
+      return
     }
     if (editingLista) {
-      await supabase.from('listas_clientes').update({
+      await updateListaCliente(editingLista, {
         nombre: listaForm.nombre,
         fecha: listaForm.fecha,
         direccion: listaForm.direccion,
         productos: listaForm.productos
-      }).eq('id', editingLista);
+      })
     } else {
-      await supabase.from('listas_clientes').insert({
+      await addListaCliente({
         nombre: listaForm.nombre,
         fecha: listaForm.fecha,
         direccion: listaForm.direccion,
         productos: listaForm.productos
-      });
+      })
     }
     // Forzar recarga inmediata de listas
-    const listasActualizadas = await getListasClientes();
-    if (listasActualizadas) setListas(listasActualizadas);
-    setShowListaForm(false);
-    setEditingLista(null);
-    setListaForm({ nombre: '', fecha: '', direccion: '', productos: [] });
-    setListaFormError(null);
+    const listasActualizadas = await getListasClientes()
+    if (listasActualizadas) setListas(listasActualizadas)
+    setShowListaForm(false)
+    setEditingLista(null)
+    setListaForm({ nombre: '', fecha: '', direccion: '', productos: [] })
+    setListaFormError(null)
   }
 
-  function handleDeleteLista(lista: ListaCliente) {
-    if (window.confirm(`¿Eliminar la lista de "${lista.nombre}"?`) && supabase) {
-      supabase.from('listas_clientes').delete().eq('id', lista.id).then(async () => {
-        const listasActualizadas = await getListasClientes();
-        if (listasActualizadas) setListas(listasActualizadas);
-      });
+  async function handleDeleteLista(lista: ListaCliente) {
+    if (window.confirm(`¿Eliminar la lista de "${lista.nombre}"?`)) {
+      await deleteListaCliente(lista.id)
     }
   }
 
@@ -442,15 +464,15 @@ export default function InventoryApp() {
   }
 
   async function handleProductFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const error = validateProductForm();
+    e.preventDefault()
+    const error = validateProductForm()
     if (error) {
-      setFormError(error);
-      return;
+      setFormError(error)
+      return
     }
     if (editingProduct) {
       // Actualizar todos los campos del producto
-      await updateProduct(editingProduct, {
+      await updateProductDB(editingProduct, {
         name: productForm.name,
         description: productForm.description,
         category: productForm.category,
@@ -458,7 +480,7 @@ export default function InventoryApp() {
         price: Number(productForm.price),
         qv: Number(productForm.qv),
         stock: Number(productForm.stock)
-      });
+      })
     } else {
       await addProduct({
         name: productForm.name,
@@ -471,16 +493,14 @@ export default function InventoryApp() {
       });
     }
     setShowProductForm(false);
-    setEditingProduct(null);
-    setProductForm({ name: '', description: '', category: '', color: '#1e293b', price: '', qv: '', stock: '' });
-    setFormError(null);
+    setEditingProduct(null)
+    setProductForm({ name: '', description: '', category: '', color: '#1e293b', price: '', qv: '', stock: '' })
+    setFormError(null)
   }
 
   async function handleDeleteProduct(product: any) {
     if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) {
-      if (supabase) {
-        await supabase.from('products').delete().eq('id', product.id);
-      }
+      await deleteProductDB(product.id)
     }
   }
 
