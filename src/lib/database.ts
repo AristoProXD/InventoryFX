@@ -72,14 +72,16 @@ export const getDatabaseStatus = () => {
 
 export const getProducts = async (): Promise<DatabaseProduct[] | null> => {
   try {
+    console.log('[DATABASE] Fetching products...')
     const result = await sql<DatabaseProduct>`
       SELECT * FROM products 
       ORDER BY created_at ASC
     `
+    console.log('[DATABASE] Products fetched:', result.rows.length)
     dbEvents.emit('products-loaded', result.rows)
     return result.rows
   } catch (error) {
-    console.error('Error fetching products:', error)
+    console.error('[DATABASE] Error fetching products:', error)
     return null
   }
 }

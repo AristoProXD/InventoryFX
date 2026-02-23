@@ -98,32 +98,40 @@ export const useMultiplePolling = (
     try {
       setSyncStatus('loading')
       setLoading(true)
+      console.log('[POLLING] Fetching all data...')
 
       const results = await Promise.all(
         Object.entries(fetchFunctions).map(async ([key, fn]) => {
           try {
+            console.log(`[POLLING] Fetching ${key}...`)
             const result = await fn()
+            console.log(`[POLLING] ${key} result:`, result?.length || 'null')
             return [key, result] as const
           } catch (err) {
-            console.error(`Error fetching ${key}:`, err)
+            console.error(`[POLLING] Error fetching ${key}:`, err)
             return [key, null] as const
           }
         })
       )
 
       const newData = Object.fromEntries(results)
+      console.log('[POLLING] All data fetched, comparing...')
       
       // Comparar con datos anteriores
       const currentDataStr = JSON.stringify(newData)
       if (prevDataRef.current !== currentDataStr) {
+        console.log('[POLLING] Data changed, updating state')
         prevDataRef.current = currentDataStr
         setData(newData)
+      } else {
+        console.log('[POLLING] Data unchanged')
       }
 
+      console.log('[POLLING] Setting sync status to ok')
       setSyncStatus('ok')
       setLoading(false)
     } catch (err) {
-      console.error('Error in fetchAllData:', err)
+      console.error('[POLLING] Error in fetchAllData:', err)
       setSyncStatus('error')
       setLoading(false)
     }
