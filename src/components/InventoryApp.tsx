@@ -15,7 +15,7 @@ import {
   updateListaCliente,
   deleteListaCliente,
 } from '../lib/database'
-import { useSocketEvent } from '../hooks/useSocket'
+import { useMultiplePolling } from '../hooks/usePolling'
 import { Plus, Minus, Edit2, Trash2, Box, LogOut } from 'lucide-react'
 
 // ===== TIPOS =====
@@ -73,87 +73,45 @@ export default function InventoryApp() {
     window.location.reload();
   }
   const [activeTab, setActiveTab] = useState('inventario');
-  // Inventario, cuentas y listas: sincronización en tiempo real
+  // Inventario, cuentas y listas: sincronización con polling
   const [products, setProducts] = useState<any[]>([]);
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [listas, setListas] = useState<any[]>([]);
-  const [syncStatus, setSyncStatus] = useState<'loading'|'ok'|'error'>('loading');
-
-  // Última actualización/sincronización de productos
   const [lastSync, setLastSync] = useState<string | null>(null)
 
+  // Polling para sincronizar datos cada 3 segundos
+  const { data: polledData, syncStatus } = useMultiplePolling(
+    {
+      products: getProducts,
+      cuentas: getDebts,
+      listas: getListasClientes,
+    },
+    { interval: 3000 }
+  )
+
+  // Actualizar estados cuando los datos del polling cambien
   useEffect(() => {
-    if (products.length > 0) {
-      const last = products.reduce((acc: string | null, p: any) => {
+    if (polledData?.products) {
+      setProducts(polledData.products)
+      const lastUpdated = polledData.products.reduce((acc: string | null, p: any) => {
         if (p.updated_at && (!acc || acc < p.updated_at)) return p.updated_at
         return acc
       }, null)
-      setLastSync(last)
+      setLastSync(lastUpdated)
     }
-  }, [products])
+  }, [polledData?.products])
 
-  // Socket.io para sincronización en tiempo real
-  useSocketEvent('products-updated', (prods: any[]) => {
-    setProducts(prods)
-    setSyncStatus('ok')
-  })
-
-  useSocketEvent('product-added', (product: any) => {
-    setProducts(prev => [...prev, product])
-  })
-
-  useSocketEvent('product-updated', (product: any) => {
-    setProducts(prev => prev.map(p => p.id === product.id ? product : p))
-  })
-
-  useSocketEvent('product-deleted', ({ id }: { id: string }) => {
-    setProducts(prev => prev.filter(p => p.id !== id))
-  })
-
-  useSocketEvent('debts-updated', (debts: any[]) => {
-    setCuentas(debts)
-  })
-
-  useSocketEvent('debt-added', (debt: any) => {
-    setCuentas(prev => [...prev, debt])
-  })
-
-  useSocketEvent('debt-deleted', ({ id }: { id: string }) => {
-    setCuentas(prev => prev.filter(d => d.id !== id))
-  })
-
-  useSocketEvent('listas-updated', (listas: any[]) => {
-    setListas(listas)
-  })
-
-  useSocketEvent('lista-added', (lista: any) => {
-    setListas(prev => [...prev, lista])
-  })
-
-  useSocketEvent('lista-updated', (lista: any) => {
-    setListas(prev => prev.map(l => l.id === lista.id ? lista : l))
-  })
-
-  useSocketEvent('lista-deleted', ({ id }: { id: string }) => {
-    setListas(prev => prev.filter(l => l.id !== id))
-  })
-
-  // Cargar datos iniciales
   useEffect(() => {
-    async function fetchAll() {
-      setSyncStatus('loading')
-      const [prods, debts, listasC] = await Promise.all([
-        getProducts(),
-        getDebts(),
-        getListasClientes()
-      ])
-      if (prods) setProducts(prods)
-      if (debts) setCuentas(debts)
-      if (listasC) setListas(listasC)
-      setSyncStatus(prods && debts && listasC ? 'ok' : 'error')
+    if (polledData?.cuentas) {
+      setCuentas(polledData.cuentas)
     }
-    fetchAll()
-  }, [])
+  }, [polledData?.cuentas])
+
+  useEffect(() => {
+    if (polledData?.listas) {
+      setListas(polledData.listas)
+    }
+  }, [polledData?.listas])
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);

@@ -1,0 +1,149 @@
+/**
+ * Hook para polling de datos (sin Socket.io)
+ * Funciona correctamente en Vercel Serverless
+ * Sincroniza datos cada 3 segundos
+ */
+
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+
+interface PollingOptions {
+  interval?: number
+  onDataChange?: (data: any) => void
+}
+
+/**
+ * Hook para polling automático de datos desde la base de datos
+ * @param fetchFn Función async que retorna los datos
+ * @param options Configuración de polling
+ */
+export const usePolling = (
+  fetchFn: () => Promise<any>,
+  options: PollingOptions = {}
+) => {
+  const { interval = 3000, onDataChange } = options
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'ok' | 'error'>('loading')
+  const prevDataRef = useRef<string>('')
+
+  useEffect(() => {
+    let isMounted = true
+    let intervalId: NodeJS.Timeout
+
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setSyncStatus('loading')
+        const result = await fetchFn()
+        
+        if (!isMounted) return
+
+        // Comparar con datos anteriores para detectar cambios
+        const currentDataStr = JSON.stringify(result)
+        if (prevDataRef.current !== currentDataStr) {
+          prevDataRef.current = currentDataStr
+          setData(result)
+          
+          if (onDataChange) {
+            onDataChange(result)
+          }
+        }
+
+        setError(null)
+        setSyncStatus('ok')
+        setLoading(false)
+      } catch (err) {
+        if (!isMounted) return
+        
+        setError(err instanceof Error ? err.message : 'Error fetching data')
+        setSyncStatus('error')
+        setLoading(false)
+      }
+    }
+
+    // Fetch inicial
+    fetchData()
+
+    // Polling cada N segundos
+    intervalId = setInterval(fetchData, interval)
+
+    return () => {
+      isMounted = false
+      clearInterval(intervalId)
+    }
+  }, [fetchFn, interval, onDataChange])
+
+  return { data, loading, error, syncStatus }
+}
+
+/**
+ * Hook para polling múltiple de diferentes tipos de datos
+ */
+export const useMultiplePolling = (
+  fetchFunctions: { [key: string]: () => Promise<any> },
+  options: PollingOptions = {}
+) => {
+  const { interval = 3000 } = options
+  const [data, setData] = useState<{ [key: string]: any }>({})
+  const [loading, setLoading] = useState(true)
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'ok' | 'error'>('loading')
+  const prevDataRef = useRef<string>('')
+
+  useEffect(() => {
+    let isMounted = true
+    let intervalId: NodeJS.Timeout
+
+    const fetchAllData = async () => {
+      try {
+        setSyncStatus('loading')
+        setLoading(true)
+
+        const results = await Promise.all(
+          Object.entries(fetchFunctions).map(async ([key, fn]) => {
+            try {
+              const result = await fn()
+              return [key, result] as const
+            } catch (err) {
+              console.error(`Error fetching ${key}:`, err)
+              return [key, null] as const
+            }
+          })
+        )
+
+        if (!isMounted) return
+
+        const newData = Object.fromEntries(results)
+        
+        // Comparar con datos anteriores
+        const currentDataStr = JSON.stringify(newData)
+        if (prevDataRef.current !== currentDataStr) {
+          prevDataRef.current = currentDataStr
+          setData(newData)
+        }
+
+        setSyncStatus('ok')
+        setLoading(false)
+      } catch (err) {
+        if (!isMounted) return
+        setSyncStatus('error')
+        setLoading(false)
+      }
+    }
+
+    // Fetch inicial
+    fetchAllData()
+
+    // Polling cada N segundos
+    intervalId = setInterval(fetchAllData, interval)
+
+    return () => {
+      isMounted = false
+      clearInterval(intervalId)
+    }
+  }, [fetchFunctions, interval])
+
+  return { data, loading, syncStatus }
+}
